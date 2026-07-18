@@ -47,21 +47,16 @@ function AdminLayout() {
               (item.to === "/admin"
                 ? pathname === "/admin"
                 : pathname.startsWith(item.to));
-            const Comp = item.active ? Link : "div";
-            return (
-              <Comp
-                key={item.label}
-                // @ts-expect-error dual usage
-                to={item.active ? item.to : undefined}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-[color:var(--brand-lime)]/25 text-[color:var(--brand-lime)]"
-                    : item.active
-                      ? "text-primary-foreground/80 hover:bg-white/10"
-                      : "cursor-not-allowed text-primary-foreground/40",
-                )}
-              >
+            const baseClass = cn(
+              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              isActive
+                ? "bg-[color:var(--brand-lime)]/25 text-[color:var(--brand-lime)]"
+                : item.active
+                  ? "text-primary-foreground/80 hover:bg-white/10"
+                  : "cursor-not-allowed text-primary-foreground/40",
+            );
+            const inner = (
+              <>
                 <item.icon className="h-4 w-4" />
                 <span className="flex-1 truncate">{item.label}</span>
                 {!item.active && (
@@ -69,7 +64,19 @@ function AdminLayout() {
                     em breve
                   </span>
                 )}
-              </Comp>
+              </>
+            );
+            if (!item.active) {
+              return (
+                <div key={item.label} className={baseClass} aria-disabled>
+                  {inner}
+                </div>
+              );
+            }
+            return (
+              <Link key={item.label} to={item.to} className={baseClass}>
+                {inner}
+              </Link>
             );
           })}
         </nav>
