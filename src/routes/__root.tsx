@@ -77,14 +77,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Master Rotas — Organização inteligente de rotas" },
+      {
+        name: "description",
+        content:
+          "Master Rotas: web app da Master Distribuidora para organizar rotas e entregas geradas pelo sistema Fusion.",
+      },
+      { name: "author", content: "Master Distribuidora" },
+      {
+        property: "og:title",
+        content: "Master Rotas — Organização inteligente de rotas",
+      },
+      {
+        property: "og:description",
+        content:
+          "Painel logístico e app do motorista para reorganização de praças e entregas.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
