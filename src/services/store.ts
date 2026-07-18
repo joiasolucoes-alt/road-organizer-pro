@@ -205,6 +205,42 @@ export const store = {
   },
 };
 
+function randRouteCode() {
+  const n = Math.floor(10000 + Math.random() * 90000);
+  return `RT${n}`;
+}
+
+function randAccessCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const pick = (n: number) =>
+    Array.from(
+      { length: n },
+      () => alphabet[Math.floor(Math.random() * alphabet.length)],
+    ).join("");
+  return `${pick(4)}-${pick(2)}`;
+}
+
+export const driverAccess = {
+  generate(batchId: string, opts?: { regenerate?: boolean }) {
+    update((s) => {
+      const b = s.batches.find((x) => x.id === batchId);
+      if (!b) return;
+      if (opts?.regenerate || !b.accessGeneratedAt) {
+        // Ensure routeCode uniqueness across batches
+        const taken = new Set(
+          s.batches.filter((x) => x.id !== batchId).map((x) => x.routeCode),
+        );
+        let code = randRouteCode();
+        while (taken.has(code)) code = randRouteCode();
+        b.routeCode = code;
+        b.accessCode = randAccessCode();
+        b.accessGeneratedAt = new Date().toISOString();
+      }
+    });
+    return state.batches.find((x) => x.id === batchId)!;
+  },
+};
+
 // helpers
 export function batchTotals(b: Batch) {
   const peso = b.deliveries.reduce((s, d) => s + d.peso, 0);
