@@ -22,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { fmtInt } from "@/lib/format";
 import { CHANGE_REASONS } from "@/mocks/data";
 import { store, useStore } from "@/services/store";
@@ -185,7 +184,6 @@ function ResumoPage() {
               );
             })}
           </ul>
-          <Textarea className="hidden" aria-hidden />
         </section>
       )}
 
