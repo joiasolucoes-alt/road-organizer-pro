@@ -6,6 +6,7 @@ import {
   ExternalLink,
   MapPin,
   Package,
+  RefreshCw,
   Truck,
 } from "lucide-react";
 import { useState } from "react";
@@ -29,6 +30,7 @@ import {
 } from "@/lib/format";
 import {
   batchTotals,
+  driverAccess,
   squareTotals,
   store,
   useStore,
@@ -58,13 +60,25 @@ function BatchDetailsPage() {
   const t = batchTotals(batch);
   const dr = store.getDrivers().find((d) => d.id === batch.motoristaId);
   const dias = Array.from(new Set(batch.squares.map((s) => s.data))).sort();
-  const link = `masterrotas.app/rota/${batch.routeCode}`;
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "";
+  const link = `${origin}/rota/${batch.routeCode}`;
 
   function copy() {
     void navigator.clipboard.writeText(link);
     setCopied(true);
     toast.success("Link copiado");
     setTimeout(() => setCopied(false), 1500);
+  }
+
+  function openAccess() {
+    driverAccess.generate(batch!.id);
+    setOpen(true);
+  }
+
+  function regenerate() {
+    driverAccess.generate(batch!.id, { regenerate: true });
+    toast.success("Novo código gerado");
   }
 
   return (
@@ -81,7 +95,7 @@ function BatchDetailsPage() {
         </div>
         <div className="flex flex-col items-end gap-2">
           <StatusBadge status={batch.status} />
-          <Button size="lg" onClick={() => setOpen(true)}>
+          <Button size="lg" onClick={openAccess}>
             <Truck className="mr-2 h-4 w-4" /> Gerar acesso do motorista
           </Button>
         </div>
@@ -166,6 +180,9 @@ function BatchDetailsPage() {
           </div>
 
           <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button variant="ghost" onClick={regenerate}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Regenerar
+            </Button>
             <Button variant="outline" onClick={copy}>
               {copied ? (
                 <Check className="mr-2 h-4 w-4" />
