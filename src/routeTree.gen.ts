@@ -13,6 +13,8 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminLotesRouteImport } from './routes/admin.lotes'
+import { Route as AdminImportRouteImport } from './routes/admin.import'
+import { Route as AdminLotesBatchIdRouteImport } from './routes/admin.lotes.$batchId'
 
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
@@ -34,31 +36,65 @@ const AdminLotesRoute = AdminLotesRouteImport.update({
   path: '/lotes',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminImportRoute = AdminImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLotesBatchIdRoute = AdminLotesBatchIdRouteImport.update({
+  id: '/$batchId',
+  path: '/$batchId',
+  getParentRoute: () => AdminLotesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/admin/lotes': typeof AdminLotesRoute
+  '/admin/import': typeof AdminImportRoute
+  '/admin/lotes': typeof AdminLotesRouteWithChildren
   '/admin/': typeof AdminIndexRoute
+  '/admin/lotes/$batchId': typeof AdminLotesBatchIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin/lotes': typeof AdminLotesRoute
+  '/admin/import': typeof AdminImportRoute
+  '/admin/lotes': typeof AdminLotesRouteWithChildren
   '/admin': typeof AdminIndexRoute
+  '/admin/lotes/$batchId': typeof AdminLotesBatchIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/admin/lotes': typeof AdminLotesRoute
+  '/admin/import': typeof AdminImportRoute
+  '/admin/lotes': typeof AdminLotesRouteWithChildren
   '/admin/': typeof AdminIndexRoute
+  '/admin/lotes/$batchId': typeof AdminLotesBatchIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/admin/lotes' | '/admin/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/admin/import'
+    | '/admin/lotes'
+    | '/admin/'
+    | '/admin/lotes/$batchId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin/lotes' | '/admin'
-  id: '__root__' | '/' | '/admin' | '/admin/lotes' | '/admin/'
+  to:
+    | '/'
+    | '/admin/import'
+    | '/admin/lotes'
+    | '/admin'
+    | '/admin/lotes/$batchId'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/admin/import'
+    | '/admin/lotes'
+    | '/admin/'
+    | '/admin/lotes/$batchId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -96,16 +132,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLotesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/import': {
+      id: '/admin/import'
+      path: '/import'
+      fullPath: '/admin/import'
+      preLoaderRoute: typeof AdminImportRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/lotes/$batchId': {
+      id: '/admin/lotes/$batchId'
+      path: '/$batchId'
+      fullPath: '/admin/lotes/$batchId'
+      preLoaderRoute: typeof AdminLotesBatchIdRouteImport
+      parentRoute: typeof AdminLotesRoute
+    }
   }
 }
 
+interface AdminLotesRouteChildren {
+  AdminLotesBatchIdRoute: typeof AdminLotesBatchIdRoute
+}
+
+const AdminLotesRouteChildren: AdminLotesRouteChildren = {
+  AdminLotesBatchIdRoute: AdminLotesBatchIdRoute,
+}
+
+const AdminLotesRouteWithChildren = AdminLotesRoute._addFileChildren(
+  AdminLotesRouteChildren,
+)
+
 interface AdminRouteChildren {
-  AdminLotesRoute: typeof AdminLotesRoute
+  AdminImportRoute: typeof AdminImportRoute
+  AdminLotesRoute: typeof AdminLotesRouteWithChildren
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminLotesRoute: AdminLotesRoute,
+  AdminImportRoute: AdminImportRoute,
+  AdminLotesRoute: AdminLotesRouteWithChildren,
   AdminIndexRoute: AdminIndexRoute,
 }
 
