@@ -73,6 +73,7 @@ export interface Batch {
   fileGeneratedAt?: string;
   routeCode: string; // ex: RT28860
   accessCode: string; // ex: 4KX9-2M
+  accessGeneratedAt?: string;
   squares: Square[];
   deliveries: Delivery[];
   changes: RouteChange[];
