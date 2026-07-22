@@ -98,7 +98,12 @@ function update(mut: (s: State) => void) {
   mut(state);
   state = {
     ...state,
-    batches: [...state.batches],
+    batches: state.batches.map((b) => ({
+      ...b,
+      squares: b.squares.map((sq) => ({ ...sq })),
+      deliveries: b.deliveries.map((d) => ({ ...d })),
+      changes: [...b.changes],
+    })),
     drivers: [...state.drivers],
     notifications: [...state.notifications],
   };
