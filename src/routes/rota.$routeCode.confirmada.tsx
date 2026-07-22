@@ -178,8 +178,8 @@ function ConfirmadaPage() {
           {generating ? "Gerando..." : "Simular arquivo Fusion"}
         </Button>
         <Button asChild variant="secondary">
-          <Link to="/admin">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao painel
+          <Link to="/rota/$routeCode" params={{ routeCode }}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
           </Link>
         </Button>
       </div>
