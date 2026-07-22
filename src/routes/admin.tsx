@@ -37,15 +37,17 @@ function AdminLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [session, setSession] = useState(() => adminSession.get());
+  const isLoginRoute = pathname === "/admin/login";
 
   useEffect(() => {
+    if (isLoginRoute) return;
     const s = adminSession.get();
     if (!s) {
       void navigate({ to: "/admin/login" });
       return;
     }
     setSession(s);
-  }, [navigate]);
+  }, [isLoginRoute, navigate]);
 
   function logout() {
     adminSession.logout();
@@ -64,6 +66,7 @@ function AdminLayout() {
     }
   }
 
+  if (isLoginRoute) return <Outlet />;
   if (!session) return null;
 
   return (
