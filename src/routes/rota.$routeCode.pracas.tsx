@@ -2,28 +2,25 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ArrowRight,
-  CalendarDays,
   ChevronDown,
   ChevronRight,
-  MapPin,
-  Package,
   RotateCcw,
-  Scale,
-  Wallet,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { DeliveryCard } from "@/components/DeliveryCard";
+import { DeliveryDetailsDrawer } from "@/components/DeliveryDetailsDrawer";
 import { SortableList } from "@/components/SortableList";
 import { SquareCard } from "@/components/SquareCard";
 import { Button } from "@/components/ui/button";
-import {
-  fmtCurrency,
-  fmtDateTime,
-  fmtInt,
-  fmtWeight,
-} from "@/lib/format";
 import { squareTotals, store, useStore } from "@/services/store";
-import type { Delivery } from "@/types";
+import type {
+  Batch,
+  Delivery,
+  DeliveryIssueReason,
+  RouteChange,
+  Square,
+} from "@/types";
 
 export const Route = createFileRoute("/rota/$routeCode/pracas")({
   component: PracasPage,
@@ -32,6 +29,7 @@ export const Route = createFileRoute("/rota/$routeCode/pracas")({
 function PracasPage() {
   const { routeCode } = useParams({ from: "/rota/$routeCode/pracas" });
   const [expandedSquareId, setExpandedSquareId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<Delivery | null>(null);
   const batch = useStore((s) =>
     s.batches.find((b) => b.routeCode === routeCode),
   )!;
@@ -92,54 +90,38 @@ function PracasPage() {
         renderItem={(sq) => (
           <div className="space-y-3">
             <SquareCard square={sq} totals={squareTotals(batch, sq.id)} />
-            {locked ? (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-between"
-                  onClick={() =>
-                    setExpandedSquareId((current) =>
-                      current === sq.id ? null : sq.id,
-                    )
-                  }
-                  aria-expanded={expandedSquareId === sq.id}
-                >
-                  Ver entregas
-                  {expandedSquareId === sq.id ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
-                </Button>
-                {expandedSquareId === sq.id && (
-                  <DeliveriesPanel
-                    deliveries={sq.deliveryIds.map(
-                      (id) => batch.deliveries.find((d) => d.id === id)!,
-                    )}
-                  />
-                )}
-              </>
-            ) : (
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="w-full justify-between"
-              >
-                <Link
-                  to="/rota/$routeCode/pracas/$squareId"
-                  params={{ routeCode, squareId: sq.id }}
-                >
-                  Organizar entregas
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full justify-between"
+              onClick={() =>
+                setExpandedSquareId((current) =>
+                  current === sq.id ? null : sq.id,
+                )
+              }
+              aria-expanded={expandedSquareId === sq.id}
+            >
+              {locked ? "Ver entregas" : "Organizar entregas"}
+              {expandedSquareId === sq.id ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </Button>
+            {expandedSquareId === sq.id && (
+              <DeliveriesPanel
+                batch={batch}
+                square={sq}
+                locked={locked}
+                onOpenDelivery={setDetail}
+              />
             )}
           </div>
         )}
       />
+
+      <DeliveryDetailsDrawer delivery={detail} onClose={() => setDetail(null)} />
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-card/95 px-4 py-3 shadow-lg backdrop-blur">
         <div className="mx-auto flex max-w-3xl gap-2">
@@ -172,99 +154,119 @@ function PracasPage() {
   );
 }
 
-function DeliveriesPanel({ deliveries }: { deliveries: Delivery[] }) {
-  return (
-    <div className="space-y-2 rounded-xl border bg-muted/30 p-2">
-      {deliveries.map((delivery, index) => (
-        <DeliverySummary
-          key={delivery.id}
-          delivery={delivery}
-          position={index + 1}
-        />
-      ))}
-    </div>
-  );
-}
-
-function DeliverySummary({
-  delivery,
-  position,
+function DeliveriesPanel({
+  batch,
+  square,
+  locked,
+  onOpenDelivery,
 }: {
-  delivery: Delivery;
-  position: number;
+  batch: Batch;
+  square: Square;
+  locked: boolean;
+  onOpenDelivery: (delivery: Delivery) => void;
 }) {
+  const deliveries = square.deliveryIds.map(
+    (id) => batch.deliveries.find((delivery) => delivery.id === id)!,
+  );
+  const originalPositions = getOriginalDeliveryPositions(
+    batch.deliveries,
+    square.deliveryIds,
+  );
+  const changed = deliveries.some(
+    (delivery, index) => originalPositions.get(delivery.id) !== index + 1,
+  );
+
   return (
-    <article className="rounded-lg border bg-card p-3 shadow-sm">
-      <div className="flex items-start gap-2">
-        <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-md bg-primary px-2 text-sm font-bold text-primary-foreground">
-          {position}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold text-foreground">
-            {delivery.cliente}
-          </h3>
-          <p className="truncate text-xs text-muted-foreground">
-            Pedido {delivery.pedido} · NF {delivery.notaFiscal}
+    <div className="space-y-3 rounded-xl border bg-muted/30 p-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Entregas da praça
           </p>
+          {!locked && (
+            <p className="text-xs text-muted-foreground">
+              Arraste ou use as setas para ordenar como nas praças.
+            </p>
+          )}
         </div>
+        {changed && !locked && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              store.resetDeliveriesOrder(batch.id, square.id);
+              toast.success("Sequência restaurada para o padrão do Fusion");
+            }}
+          >
+            <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Restaurar sequência
+          </Button>
+        )}
       </div>
 
-      <div className="mt-3 space-y-2 text-xs">
-        <p className="flex items-start gap-1.5 text-foreground">
-          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <span>
-            {delivery.endereco}
-            <br />
-            <span className="text-muted-foreground">
-              {delivery.bairro} · {delivery.cidade}/{delivery.uf}
-            </span>
-          </span>
-        </p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <InlineFact
-            icon={<CalendarDays className="h-3.5 w-3.5" />}
-            label="Previsao"
-            value={fmtDateTime(delivery.dataPrevistaEntrega)}
-          />
-          <InlineFact
-            icon={<Scale className="h-3.5 w-3.5" />}
-            label="Peso"
-            value={fmtWeight(delivery.peso)}
-          />
-          <InlineFact
-            icon={<Wallet className="h-3.5 w-3.5" />}
-            label="Valor"
-            value={fmtCurrency(delivery.valor)}
-          />
-          <InlineFact
-            icon={<Package className="h-3.5 w-3.5" />}
-            label="Itens"
-            value={fmtInt(delivery.quantidadeItens)}
-          />
+      {locked ? (
+        <div className="space-y-2">
+          {deliveries.map((delivery, index) => (
+            <div key={delivery.id} className="rounded-xl border bg-card p-3">
+              <DeliveryCard
+                delivery={delivery}
+                positionInSquare={index + 1}
+                originalPosition={originalPositions.get(delivery.id)}
+                issueReason={getDeliveryIssueReason(batch.changes, delivery.id)}
+                onOpen={() => onOpenDelivery(delivery)}
+              />
+            </div>
+          ))}
         </div>
-      </div>
-    </article>
+      ) : (
+        <SortableList
+          items={deliveries}
+          onReorder={(order) => {
+            store.reorderDeliveries(batch.id, square.id, order);
+          }}
+          renderItem={(delivery, index) => (
+            <DeliveryCard
+              delivery={delivery}
+              positionInSquare={index + 1}
+              originalPosition={originalPositions.get(delivery.id)}
+              issueReason={getDeliveryIssueReason(batch.changes, delivery.id)}
+              onIssueChange={(reason) => {
+                store.setDeliveryIssue(batch.id, delivery.id, reason);
+                toast.success(
+                  reason ? "Ocorrência registrada" : "Ocorrência removida",
+                );
+              }}
+              onOpen={() => onOpenDelivery(delivery)}
+            />
+          )}
+        />
+      )}
+    </div>
   );
 }
 
-function InlineFact({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-md bg-muted/60 px-2 py-1.5">
-      <p className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-        {icon}
-        {label}
-      </p>
-      <p className="mt-0.5 break-words text-xs font-semibold text-foreground">
-        {value}
-      </p>
-    </div>
-  );
+function getOriginalDeliveryPositions(
+  deliveries: Delivery[],
+  deliveryIds: string[],
+) {
+  const byOriginalOrder = [...deliveryIds].sort((a, z) => {
+    const da = deliveries.find((delivery) => delivery.id === a);
+    const dz = deliveries.find((delivery) => delivery.id === z);
+    return (da?.ordemOriginal ?? 0) - (dz?.ordemOriginal ?? 0);
+  });
+  return new Map(byOriginalOrder.map((id, index) => [id, index + 1]));
+}
+
+function getDeliveryIssueReason(changes: RouteChange[], deliveryId: string) {
+  const reason = changes.find(
+    (change) => change.tipo === "entrega" && change.targetId === deliveryId,
+  )?.motivo;
+  if (
+    reason === "Endereço errado" ||
+    reason === "Restrição de horário" ||
+    reason === "Inviável de entrega"
+  ) {
+    return reason satisfies DeliveryIssueReason;
+  }
+  return undefined;
 }
