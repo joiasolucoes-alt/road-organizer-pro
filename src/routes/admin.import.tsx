@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { fmtCurrency, fmtDate, fmtWeight } from "@/lib/format";
-import { batchTotals, store, useStore } from "@/services/store";
+import { batchTotals, store } from "@/services/store";
+import type { Batch } from "@/types";
 
 export const Route = createFileRoute("/admin/import")({
   component: ImportPage,
@@ -26,17 +27,19 @@ function ImportPage() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [step, setStep] = useState(-1);
   const [done, setDone] = useState(false);
-  const batch = useStore((s) => s.batches[0]);
+  const [batch, setBatch] = useState<Batch | null>(null);
 
   async function runSimulation(name: string) {
     setFileName(name);
     setDone(false);
+    setBatch(null);
     for (let i = 0; i < STEPS.length; i++) {
       setStep(i);
       await new Promise((r) => setTimeout(r, 550));
     }
+    const created = store.createBatchFromImport();
+    setBatch(created);
     setDone(true);
-    store.createBatchFromImport();
   }
 
   function handleFile(f: File) {

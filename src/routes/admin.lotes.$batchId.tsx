@@ -1,12 +1,14 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import {
   CalendarDays,
   Check,
   Copy,
   ExternalLink,
+  FileClock,
   MapPin,
   Package,
   RefreshCw,
+  Trash2,
   Truck,
 } from "lucide-react";
 import { useState } from "react";
@@ -22,6 +24,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   fmtCurrency,
   fmtDate,
@@ -42,7 +51,9 @@ export const Route = createFileRoute("/admin/lotes/$batchId")({
 
 function BatchDetailsPage() {
   const { batchId } = useParams({ from: "/admin/lotes/$batchId" });
+  const navigate = useNavigate();
   const batch = useStore((s) => s.batches.find((b) => b.id === batchId));
+  const drivers = useStore((s) => s.drivers);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -58,11 +69,13 @@ function BatchDetailsPage() {
   }
 
   const t = batchTotals(batch);
-  const dr = store.getDrivers().find((d) => d.id === batch.motoristaId);
+  const dr = drivers.find((d) => d.id === batch.motoristaId);
   const dias = Array.from(new Set(batch.squares.map((s) => s.data))).sort();
   const origin =
     typeof window !== "undefined" ? window.location.origin : "";
   const link = `${origin}/rota/${batch.routeCode}`;
+  const locked =
+    batch.status === "confirmado" || batch.status === "arquivo_gerado";
 
   function copy() {
     void navigator.clipboard.writeText(link);
@@ -81,6 +94,15 @@ function BatchDetailsPage() {
     toast.success("Novo código gerado");
   }
 
+  function handleDelete() {
+    if (locked) return;
+    if (confirm(`Excluir o lote ${batch!.codigo}? Esta ação não pode ser desfeita.`)) {
+      store.deleteBatch(batch!.id);
+      toast.success("Lote excluído");
+      void navigate({ to: "/admin/lotes" });
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
@@ -95,11 +117,64 @@ function BatchDetailsPage() {
         </div>
         <div className="flex flex-col items-end gap-2">
           <StatusBadge status={batch.status} />
-          <Button size="lg" onClick={openAccess}>
-            <Truck className="mr-2 h-4 w-4" /> Gerar acesso do motorista
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {locked && (
+              <Button asChild variant="outline">
+                <Link
+                  to="/admin/lotes/$batchId/alteracoes"
+                  params={{ batchId }}
+                >
+                  <FileClock className="mr-2 h-4 w-4" /> Ver alterações
+                </Link>
+              </Button>
+            )}
+            {!locked && (
+              <Button variant="outline" onClick={handleDelete}>
+                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+              </Button>
+            )}
+            <Button size="lg" onClick={openAccess}>
+              <Truck className="mr-2 h-4 w-4" /> Gerar acesso do motorista
+            </Button>
+          </div>
         </div>
       </header>
+
+      <section className="rounded-2xl border bg-card p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Motorista responsável
+            </p>
+            <p className="mt-1 font-semibold">{dr?.nome ?? "Não atribuído"}</p>
+            {dr?.telefone && (
+              <p className="text-xs text-muted-foreground">{dr.telefone}</p>
+            )}
+          </div>
+          {!locked && drivers.length > 0 && (
+            <div className="min-w-[220px]">
+              <Select
+                value={batch.motoristaId}
+                onValueChange={(v) => {
+                  store.assignDriver(batch.id, v);
+                  toast.success("Motorista atualizado");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar motorista" />
+                </SelectTrigger>
+                <SelectContent>
+                  {drivers.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+      </section>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Dias" value={fmtInt(t.dias)} />
