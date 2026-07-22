@@ -150,6 +150,15 @@ function uniqueRouteCode(existing: Batch[]) {
   return code;
 }
 
+function deliveryOriginalPositions(batch: Batch, deliveryIds: string[]) {
+  const byOriginalOrder = [...deliveryIds].sort((a, z) => {
+    const da = batch.deliveries.find((d) => d.id === a);
+    const dz = batch.deliveries.find((d) => d.id === z);
+    return (da?.ordemOriginal ?? 0) - (dz?.ordemOriginal ?? 0);
+  });
+  return new Map(byOriginalOrder.map((id, index) => [id, index + 1]));
+}
+
 export const store = {
   getBatches(): Batch[] {
     ensureHydrated();
@@ -261,13 +270,15 @@ export const store = {
       if (b.status === "confirmado" || b.status === "arquivo_gerado") return;
       const sq = b.squares.find((x) => x.id === squareId);
       if (!sq) return;
+      const originalPositions = deliveryOriginalPositions(b, sq.deliveryIds);
       sq.deliveryIds = newOrder;
       newOrder.forEach((did, idx) => {
         const del = b.deliveries.find((d) => d.id === did);
         if (!del) return;
         const posInSquare = idx + 1;
+        const originalPosition = originalPositions.get(did) ?? posInSquare;
         del.ordemAtual = posInSquare;
-        const changed = del.ordemAtual !== del.ordemOriginal;
+        const changed = posInSquare !== originalPosition;
         b.changes = b.changes.filter(
           (c) => !(c.tipo === "entrega" && c.targetId === did),
         );
@@ -276,13 +287,35 @@ export const store = {
             id: `chg-${Date.now()}-${did}`,
             tipo: "entrega",
             targetId: did,
-            ordemOriginal: del.ordemOriginal,
+            ordemOriginal: originalPosition,
             ordemNova: posInSquare,
             timestamp: new Date().toISOString(),
           });
         }
       });
       if (b.status === "disponivel") b.status = "em_edicao";
+    });
+  },
+  resetDeliveriesOrder(batchId: string, squareId: string) {
+    update((s) => {
+      const b = s.batches.find((x) => x.id === batchId);
+      if (!b) return;
+      if (b.status === "confirmado" || b.status === "arquivo_gerado") return;
+      const sq = b.squares.find((x) => x.id === squareId);
+      if (!sq) return;
+      sq.deliveryIds = [...sq.deliveryIds].sort((a, z) => {
+        const da = b.deliveries.find((d) => d.id === a)!;
+        const dz = b.deliveries.find((d) => d.id === z)!;
+        return da.ordemOriginal - dz.ordemOriginal;
+      });
+      sq.deliveryIds.forEach((did, idx) => {
+        const del = b.deliveries.find((d) => d.id === did);
+        if (del) del.ordemAtual = idx + 1;
+      });
+      b.changes = b.changes.filter((c) => {
+        if (c.tipo !== "entrega") return true;
+        return !sq.deliveryIds.includes(c.targetId);
+      });
     });
   },
   resetSquareOrder(batchId: string) {
@@ -312,7 +345,12 @@ export const store = {
             return da.ordemOriginal - dz.ordemOriginal;
           }),
         }));
-      b.deliveries.forEach((d) => (d.ordemAtual = d.ordemOriginal));
+      b.squares.forEach((sq) => {
+        sq.deliveryIds.forEach((did, idx) => {
+          const del = b.deliveries.find((d) => d.id === did);
+          if (del) del.ordemAtual = idx + 1;
+        });
+      });
       b.changes = [];
       if (b.status === "em_edicao") b.status = "disponivel";
     });

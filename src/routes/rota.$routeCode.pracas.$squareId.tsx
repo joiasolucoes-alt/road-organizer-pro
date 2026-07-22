@@ -1,5 +1,11 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, CalendarDays, MapPin } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  MapPin,
+  RotateCcw,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DeliveryCard } from "@/components/DeliveryCard";
@@ -28,8 +34,14 @@ function SquareDeliveriesPage() {
   const items = sq.deliveryIds.map(
     (id) => batch.deliveries.find((d) => d.id === id)!,
   );
+  const originalPositions = getOriginalDeliveryPositions(
+    batch.deliveries,
+    sq.deliveryIds,
+  );
 
-  const changed = items.some((d, i) => d.ordemOriginal !== i + 1);
+  const changed = items.some(
+    (d, i) => originalPositions.get(d.id) !== i + 1,
+  );
 
   return (
     <div className="space-y-4 pb-24">
@@ -55,11 +67,32 @@ function SquareDeliveriesPage() {
           <span aria-hidden>·</span>
           <span>{items.length} entregas obrigatórias</span>
         </p>
+        {!locked && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            Arraste os cards ou use as setas para definir a sequência de entrega
+            desta praça.
+          </p>
+        )}
       </header>
 
       {changed && !locked && (
         <div className="rounded-lg border-l-4 border-[color:var(--brand-warn)] bg-[color:var(--brand-warn-bg)] px-3 py-2 text-xs font-medium text-[color:var(--brand-warn-fg)]">
           Sequência alterada em relação ao Fusion.
+        </div>
+      )}
+      {changed && !locked && (
+        <div className="flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              store.resetDeliveriesOrder(batch.id, squareId);
+              toast.success("Sequência restaurada para o padrão do Fusion");
+            }}
+          >
+            <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Restaurar sequência
+            original
+          </Button>
         </div>
       )}
       {locked && (
@@ -78,6 +111,7 @@ function SquareDeliveriesPage() {
           <DeliveryCard
             delivery={d}
             positionInSquare={i + 1}
+            originalPosition={originalPositions.get(d.id)}
             onOpen={() => setDetail(d)}
           />
         )}
@@ -108,4 +142,16 @@ function SquareDeliveriesPage() {
       </div>
     </div>
   );
+}
+
+function getOriginalDeliveryPositions(
+  deliveries: Delivery[],
+  deliveryIds: string[],
+) {
+  const byOriginalOrder = [...deliveryIds].sort((a, z) => {
+    const da = deliveries.find((d) => d.id === a);
+    const dz = deliveries.find((d) => d.id === z);
+    return (da?.ordemOriginal ?? 0) - (dz?.ordemOriginal ?? 0);
+  });
+  return new Map(byOriginalOrder.map((id, index) => [id, index + 1]));
 }

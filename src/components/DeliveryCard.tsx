@@ -16,11 +16,17 @@ import type { Delivery } from "@/types";
 interface Props {
   delivery: Delivery;
   positionInSquare: number;
+  originalPosition?: number;
   onOpen?: () => void;
 }
 
-export function DeliveryCard({ delivery: d, positionInSquare, onOpen }: Props) {
-  const changed = positionInSquare !== d.ordemOriginal;
+export function DeliveryCard({
+  delivery: d,
+  positionInSquare,
+  originalPosition = d.ordemOriginal,
+  onOpen,
+}: Props) {
+  const changed = positionInSquare !== originalPosition;
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
@@ -57,7 +63,7 @@ export function DeliveryCard({ delivery: d, positionInSquare, onOpen }: Props) {
         </div>
 
         <ChangeIndicator
-          original={d.ordemOriginal}
+          original={originalPosition}
           atual={positionInSquare}
           compact
         />
