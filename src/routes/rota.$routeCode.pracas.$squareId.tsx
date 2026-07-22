@@ -22,6 +22,7 @@ function SquareDeliveriesPage() {
     s.batches.find((b) => b.routeCode === routeCode),
   )!;
   const sq = batch.squares.find((s) => s.id === squareId)!;
+  const locked = batch.status === "confirmado" || batch.status === "arquivo_gerado";
   const [detail, setDetail] = useState<Delivery | null>(null);
 
   const items = sq.deliveryIds.map(
@@ -56,15 +57,21 @@ function SquareDeliveriesPage() {
         </p>
       </header>
 
-      {changed && (
+      {changed && !locked && (
         <div className="rounded-lg border-l-4 border-[color:var(--brand-warn)] bg-[color:var(--brand-warn-bg)] px-3 py-2 text-xs font-medium text-[color:var(--brand-warn-fg)]">
           Sequência alterada em relação ao Fusion.
+        </div>
+      )}
+      {locked && (
+        <div className="rounded-lg border-l-4 border-primary bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
+          Rota confirmada — visualização somente leitura.
         </div>
       )}
 
       <SortableList
         items={items}
         onReorder={(order) => {
+          if (locked) return;
           store.reorderDeliveries(batch.id, squareId, order);
         }}
         renderItem={(d, i) => (

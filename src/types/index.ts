@@ -78,3 +78,30 @@ export interface Batch {
   deliveries: Delivery[];
   changes: RouteChange[];
 }
+
+export type NotificationKind =
+  | "lote_criado"
+  | "acesso_gerado"
+  | "rota_confirmada"
+  | "arquivo_gerado"
+  | "lote_excluido";
+
+export interface AppNotification {
+  id: string;
+  kind: NotificationKind;
+  batchId?: string;
+  title: string;
+  description?: string;
+  timestamp: string;
+  read: boolean;
+}
+
+export interface AdminSession {
+  username: string;
+  loggedInAt: string;
+}
+
+export interface DriverSession {
+  routeCode: string;
+  loggedInAt: string;
+}

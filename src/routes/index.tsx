@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Truck, ShieldCheck } from "lucide-react";
+import { ArrowRight, RotateCcw, ShieldCheck, Truck } from "lucide-react";
+import { toast } from "sonner";
 import { AppLogo } from "@/components/AppLogo";
 import { Button } from "@/components/ui/button";
+import { store } from "@/services/store";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -49,7 +51,7 @@ function Landing() {
             size="lg"
             className="h-16 justify-between text-base font-semibold shadow-md"
           >
-            <Link to="/admin">
+            <Link to="/admin/login">
               <span className="flex items-center gap-3">
                 <ShieldCheck className="h-5 w-5" />
                 Acessar como administrador
@@ -63,7 +65,7 @@ function Landing() {
             variant="outline"
             className="h-16 justify-between border-2 text-base font-semibold hover:bg-[color:var(--brand-lime)]/20 hover:border-[color:var(--brand-lime)]"
           >
-            <Link to="/rota/$routeCode" params={{ routeCode: "RT28860" }}>
+            <Link to="/rota">
               <span className="flex items-center gap-3">
                 <Truck className="h-5 w-5" />
                 Acessar como motorista
@@ -73,9 +75,27 @@ function Landing() {
           </Button>
         </div>
 
-        <p className="mt-8 text-xs text-muted-foreground">
-          Versão 0 · Ambiente de validação com dados mockados
-        </p>
+        <div className="mt-8 flex flex-col items-center gap-2">
+          <p className="text-xs text-muted-foreground">
+            Versão 0 · Ambiente de validação com dados mockados
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                confirm(
+                  "Resetar todos os dados de demonstração? Sessões e lotes serão apagados.",
+                )
+              ) {
+                store.reset();
+                toast.success("Demo reiniciada");
+              }
+            }}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw className="h-3 w-3" /> Reiniciar demonstração
+          </button>
+        </div>
       </main>
 
       <footer className="border-t bg-card/60 py-4 text-center text-xs text-muted-foreground backdrop-blur">

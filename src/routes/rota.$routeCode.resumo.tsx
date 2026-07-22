@@ -67,6 +67,13 @@ function ResumoPage() {
         </p>
       </header>
 
+      {batch.changes.length > 0 &&
+        batch.changes.some((c) => !c.motivo) && (
+          <div className="rounded-lg border-l-4 border-[color:var(--brand-warn)] bg-[color:var(--brand-warn-bg)] px-3 py-2 text-xs font-medium text-[color:var(--brand-warn-fg)]">
+            Informe o motivo de cada alteração antes de confirmar a rota.
+          </div>
+        )}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Praças alteradas" value={fmtInt(changedSquares.length)} />
         <StatCard
@@ -108,9 +115,12 @@ function ResumoPage() {
 
       {changedSquares.length + changedDeliveries.length > 0 && (
         <section className="rounded-2xl border bg-card p-4 shadow-sm">
-          <h2 className="text-sm font-semibold">Justificativa das alterações</h2>
+          <h2 className="text-sm font-semibold">
+            Justificativa das alterações
+          </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Opcional — ajuda a equipe logística a entender o motivo.
+            Obrigatório — a equipe logística usa esta informação para revisar a
+            rota.
           </p>
           <ul className="mt-3 space-y-3">
             {batch.changes.map((c) => {
@@ -194,7 +204,19 @@ function ResumoPage() {
               Voltar e revisar
             </Link>
           </Button>
-          <Button className="flex-[2]" onClick={() => setConfirmOpen(true)}>
+          <Button
+            className="flex-[2]"
+            onClick={() => {
+              const missing = batch.changes.filter((c) => !c.motivo);
+              if (missing.length > 0) {
+                toast.error(
+                  `Informe o motivo de ${missing.length} alteração(ões) antes de confirmar.`,
+                );
+                return;
+              }
+              setConfirmOpen(true);
+            }}
+          >
             Confirmar organização da rota
             <ArrowRight className="ml-1 h-4 w-4" />
           </Button>
