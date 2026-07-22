@@ -14,7 +14,7 @@ import { SortableList } from "@/components/SortableList";
 import { Button } from "@/components/ui/button";
 import { fmtDate } from "@/lib/format";
 import { store, useStore } from "@/services/store";
-import type { Delivery } from "@/types";
+import type { Delivery, DeliveryIssueReason, RouteChange } from "@/types";
 
 export const Route = createFileRoute("/rota/$routeCode/pracas/$squareId")({
   component: SquareDeliveriesPage,
@@ -112,6 +112,19 @@ function SquareDeliveriesPage() {
             delivery={d}
             positionInSquare={i + 1}
             originalPosition={originalPositions.get(d.id)}
+            issueReason={getDeliveryIssueReason(batch.changes, d.id)}
+            onIssueChange={
+              locked
+                ? undefined
+                : (reason) => {
+                    store.setDeliveryIssue(batch.id, d.id, reason);
+                    toast.success(
+                      reason
+                        ? "Ocorrência registrada"
+                        : "Ocorrência removida",
+                    );
+                  }
+            }
             onOpen={() => setDetail(d)}
           />
         )}
@@ -154,4 +167,18 @@ function getOriginalDeliveryPositions(
     return (da?.ordemOriginal ?? 0) - (dz?.ordemOriginal ?? 0);
   });
   return new Map(byOriginalOrder.map((id, index) => [id, index + 1]));
+}
+
+function getDeliveryIssueReason(changes: RouteChange[], deliveryId: string) {
+  const reason = changes.find(
+    (change) => change.tipo === "entrega" && change.targetId === deliveryId,
+  )?.motivo;
+  if (
+    reason === "Endereço errado" ||
+    reason === "Restrição de horário" ||
+    reason === "Inviável de entrega"
+  ) {
+    return reason satisfies DeliveryIssueReason;
+  }
+  return undefined;
 }

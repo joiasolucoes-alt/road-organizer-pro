@@ -4,6 +4,7 @@ import type {
   AdminSession,
   AppNotification,
   Batch,
+  DeliveryIssueReason,
   Driver,
   DriverSession,
   NotificationKind,
@@ -316,6 +317,55 @@ export const store = {
         if (c.tipo !== "entrega") return true;
         return !sq.deliveryIds.includes(c.targetId);
       });
+    });
+  },
+  setDeliveryIssue(
+    batchId: string,
+    deliveryId: string,
+    reason: DeliveryIssueReason | null,
+  ) {
+    update((s) => {
+      const b = s.batches.find((x) => x.id === batchId);
+      if (!b) return;
+      if (b.status === "confirmado" || b.status === "arquivo_gerado") return;
+      const sq = b.squares.find((x) => x.deliveryIds.includes(deliveryId));
+      if (!sq) return;
+      const currentPosition = sq.deliveryIds.indexOf(deliveryId) + 1;
+      const originalPositions = deliveryOriginalPositions(b, sq.deliveryIds);
+      const originalPosition =
+        originalPositions.get(deliveryId) ?? currentPosition;
+      const existing = b.changes.find(
+        (c) => c.tipo === "entrega" && c.targetId === deliveryId,
+      );
+
+      if (!reason) {
+        if (existing) {
+          existing.motivo = undefined;
+          if (existing.ordemOriginal === existing.ordemNova) {
+            b.changes = b.changes.filter((c) => c.id !== existing.id);
+          }
+        }
+        return;
+      }
+
+      if (existing) {
+        existing.ordemOriginal = originalPosition;
+        existing.ordemNova = currentPosition;
+        existing.motivo = reason;
+        existing.timestamp = new Date().toISOString();
+        return;
+      }
+
+      b.changes.push({
+        id: `chg-${Date.now()}-${deliveryId}`,
+        tipo: "entrega",
+        targetId: deliveryId,
+        ordemOriginal: originalPosition,
+        ordemNova: currentPosition,
+        motivo: reason,
+        timestamp: new Date().toISOString(),
+      });
+      if (b.status === "disponivel") b.status = "em_edicao";
     });
   },
   resetSquareOrder(batchId: string) {

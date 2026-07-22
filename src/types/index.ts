@@ -51,6 +51,11 @@ export interface Driver {
   telefone: string;
 }
 
+export type DeliveryIssueReason =
+  | "Endereço errado"
+  | "Restrição de horário"
+  | "Inviável de entrega";
+
 export interface RouteChange {
   id: string;
   tipo: "praca" | "entrega";

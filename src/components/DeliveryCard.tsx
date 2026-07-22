@@ -1,22 +1,45 @@
 import {
   AlertCircle,
+  Ban,
   Calendar,
   CheckCircle2,
+  Clock,
   Info,
   MapPin,
+  MapPinOff,
+  MoreHorizontal,
   Package,
   Scale,
   Wallet,
 } from "lucide-react";
 import { ChangeIndicator } from "./ChangeIndicator";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { fmtCurrency, fmtDateTime, fmtInt, fmtWeight } from "@/lib/format";
-import type { Delivery } from "@/types";
+import type { Delivery, DeliveryIssueReason } from "@/types";
+
+const DELIVERY_ISSUES: {
+  reason: DeliveryIssueReason;
+  icon: React.ReactNode;
+}[] = [
+  { reason: "Endereço errado", icon: <MapPinOff className="h-4 w-4" /> },
+  { reason: "Restrição de horário", icon: <Clock className="h-4 w-4" /> },
+  { reason: "Inviável de entrega", icon: <Ban className="h-4 w-4" /> },
+];
 
 interface Props {
   delivery: Delivery;
   positionInSquare: number;
   originalPosition?: number;
+  issueReason?: DeliveryIssueReason;
+  onIssueChange?: (reason: DeliveryIssueReason | null) => void;
   onOpen?: () => void;
 }
 
@@ -24,6 +47,8 @@ export function DeliveryCard({
   delivery: d,
   positionInSquare,
   originalPosition = d.ordemOriginal,
+  issueReason,
+  onIssueChange,
   onOpen,
 }: Props) {
   const changed = positionInSquare !== originalPosition;
@@ -62,11 +87,53 @@ export function DeliveryCard({
           </div>
         </div>
 
-        <ChangeIndicator
-          original={originalPosition}
-          atual={positionInSquare}
-          compact
-        />
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <ChangeIndicator
+            original={originalPosition}
+            atual={positionInSquare}
+            compact
+          />
+          {onIssueChange && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label="Abrir opções da entrega"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Ocorrência da entrega</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {DELIVERY_ISSUES.map((item) => (
+                  <DropdownMenuItem
+                    key={item.reason}
+                    onClick={() => onIssueChange(item.reason)}
+                  >
+                    {item.icon}
+                    <span>{item.reason}</span>
+                    {issueReason === item.reason && (
+                      <CheckCircle2 className="ml-auto h-4 w-4 text-primary" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+                {issueReason && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onIssueChange(null)}>
+                      <AlertCircle className="h-4 w-4" />
+                      Limpar ocorrência
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 text-xs">
@@ -108,6 +175,13 @@ export function DeliveryCard({
       {changed && (
         <div className="rounded-md bg-[color:var(--brand-warn-bg)] px-2 py-1 text-[11px] font-medium text-[color:var(--brand-warn-fg)] ring-1 ring-[color:var(--brand-warn)]/40">
           Ordem alterada pelo motorista
+        </div>
+      )}
+
+      {issueReason && (
+        <div className="inline-flex w-fit items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-[11px] font-medium text-destructive ring-1 ring-destructive/20">
+          <AlertCircle className="h-3.5 w-3.5" />
+          {issueReason}
         </div>
       )}
 
