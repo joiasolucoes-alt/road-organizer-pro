@@ -8,18 +8,48 @@ interface Props {
 export function AppLogo({ variant = "full", className }: Props) {
   const mark = (
     <svg
-      viewBox="0 0 48 48"
+      viewBox="0 0 64 64"
       role="img"
       aria-label="Master Distribuidora"
       className="h-full w-full"
     >
-      <rect width="48" height="48" rx="10" fill="var(--brand-blue)" />
-      <path
-        d="M12 14h24c2.4 0 4.2 2 3.8 4.3L37 34h-5.7l2.1-12.1-8.5 12.1h-4.1l-4.2-12.2L14.5 34H9l3-17.3c.3-1.6 1.7-2.7 3.3-2.7Z"
-        fill="white"
+      <circle cx="32" cy="32" r="31" fill="var(--brand-blue)" />
+      <circle
+        cx="32"
+        cy="32"
+        r="27.5"
+        fill="none"
+        stroke="var(--brand-lime)"
+        strokeWidth="2.8"
       />
       <path
-        d="M34.8 35.5H41l-1.1 5.5H17.6c-3.9 0-7-1.9-8.5-5.5h6.2c1.1 1.1 2.7 1.6 4.8 1.6h14.4l.3-1.6Z"
+        d="M17 23c0-3 2.4-5.4 5.4-5.4H27v17.2h-4.6c-3 0-5.4-2.4-5.4-5.4V23Z"
+        fill="var(--brand-lime)"
+      />
+      <path
+        d="M29.5 15.5h7.4v22.8c0 3.1-2.5 5.6-5.6 5.6h-1.8V15.5Z"
+        fill="var(--brand-lime)"
+      />
+      <path
+        d="M39.5 20h3.9c3 0 5.4 2.4 5.4 5.4V35c0 2.8-2.1 5.1-4.8 5.4l-4.5.5V20Z"
+        fill="var(--brand-lime)"
+      />
+      <path
+        d="M29.5 42.2c7.4 3.2 13.4-7.2 22.8-3.8"
+        fill="none"
+        stroke="white"
+        strokeLinecap="round"
+        strokeWidth="3.2"
+      />
+      <path
+        d="M29.5 47c8.6 3.6 14.7-8 25-4.4"
+        fill="none"
+        stroke="var(--brand-lime)"
+        strokeLinecap="round"
+        strokeWidth="3.2"
+      />
+      <path
+        d="M50.6 34.7 57 41l-7.1 5.4.7-4.3-.7-3.2.7-4.2Z"
         fill="var(--brand-lime)"
       />
     </svg>
@@ -29,7 +59,7 @@ export function AppLogo({ variant = "full", className }: Props) {
     return (
       <span
         className={cn(
-          "inline-flex aspect-square shrink-0 items-center justify-center overflow-hidden rounded-[10px]",
+          "inline-flex aspect-square shrink-0 items-center justify-center overflow-hidden rounded-full",
           className,
         )}
       >
@@ -45,7 +75,7 @@ export function AppLogo({ variant = "full", className }: Props) {
         className,
       )}
     >
-      <span className="inline-flex h-10 w-10 shrink-0 overflow-hidden rounded-[10px]">
+      <span className="inline-flex h-10 w-10 shrink-0 overflow-hidden rounded-full">
         {mark}
       </span>
       <span className="min-w-0 leading-none">
@@ -53,7 +83,7 @@ export function AppLogo({ variant = "full", className }: Props) {
           Master
         </span>
         <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          Distribuidora
+          Rotas
         </span>
       </span>
     </span>
