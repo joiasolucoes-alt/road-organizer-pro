@@ -120,32 +120,19 @@ function PracasPage() {
               <div className="space-y-3">
                 <SquareCard square={sq} totals={squareTotals(batch, sq.id)} />
                 <Button
-                  type="button"
+                  asChild
                   variant="outline"
                   size="sm"
                   className="w-full justify-between"
-                  onClick={() =>
-                    setExpandedSquareId((current) =>
-                      current === sq.id ? null : sq.id,
-                    )
-                  }
-                  aria-expanded={expandedSquareId === sq.id}
                 >
-                  {locked ? "Ver entregas" : "Organizar entregas"}
-                  {expandedSquareId === sq.id ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
+                  <Link
+                    to="/rota/$routeCode/pracas/$squareId"
+                    params={{ routeCode, squareId: sq.id }}
+                  >
+                    {locked ? "Ver entregas" : "Organizar entregas"}
                     <ChevronRight className="h-4 w-4" />
-                  )}
+                  </Link>
                 </Button>
-                {expandedSquareId === sq.id && (
-                  <DeliveriesPanel
-                    batch={batch}
-                    square={sq}
-                    locked={locked}
-                    onOpenDelivery={setDetail}
-                  />
-                )}
               </div>
             )}
           />
