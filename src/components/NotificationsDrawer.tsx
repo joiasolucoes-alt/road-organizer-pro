@@ -41,7 +41,7 @@ export function NotificationsDrawer() {
       <SheetTrigger asChild>
         <button
           type="button"
-          className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-primary-foreground transition-colors hover:bg-white/20"
+          className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border bg-background text-primary shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           aria-label="Notificações"
         >
           <Bell className="h-4 w-4" />

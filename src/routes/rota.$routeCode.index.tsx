@@ -11,7 +11,6 @@ import {
   Shuffle,
   Wallet,
 } from "lucide-react";
-import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { fmtCurrency, fmtDate, fmtInt, fmtWeight } from "@/lib/format";
 import { batchTotals, squareTotals, useStore } from "@/services/store";
@@ -53,7 +52,6 @@ function DriverSummary() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge status={batch.status} />
               {batch.changes.length > 0 && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--brand-warn-bg)] px-2.5 py-1 text-xs font-semibold text-[color:var(--brand-warn-fg)]">
                   <Shuffle className="h-3.5 w-3.5" />

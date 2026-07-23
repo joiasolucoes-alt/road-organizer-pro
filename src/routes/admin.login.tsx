@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -53,12 +53,13 @@ function AdminLoginPage() {
   return (
     <div className="relative flex min-h-screen flex-col bg-background">
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-10">
-        <Link
-          to="/"
+        <button
+          type="button"
+          onClick={() => void navigate({ to: "/" })}
           className="mb-6 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Voltar
-        </Link>
+        </button>
         <div className="mb-6 flex items-center gap-3">
           <div className="rounded-xl bg-primary p-3 shadow">
             <AppLogo variant="mark" className="h-8 w-8" />
