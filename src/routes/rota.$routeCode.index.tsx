@@ -123,7 +123,6 @@ function DriverSummary() {
                   key={trip.date}
                   trip={trip}
                   index={index}
-                  routeCode={batch.routeCode}
                   locked={locked}
                   changed={tripChanged}
                   status={batch.status}
@@ -274,14 +273,12 @@ function RouteMetric({
 function TripCard({
   trip,
   index,
-  routeCode,
   locked,
   changed,
   status,
 }: {
   trip: TripGroup;
   index: number;
-  routeCode: string;
   locked: boolean;
   changed: boolean;
   status: Batch["status"];
@@ -295,7 +292,7 @@ function TripCard({
         : "Não iniciada";
 
   return (
-    <article className="flex min-h-[250px] flex-col rounded-2xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+    <article className="flex min-h-[210px] flex-col rounded-2xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-primary">
@@ -340,13 +337,6 @@ function TripCard({
           ))}
         </div>
       </div>
-
-      <Button asChild variant={locked ? "outline" : "default"} className="mt-4">
-        <Link to="/rota/$routeCode/pracas" params={{ routeCode }}>
-          {locked ? "Visualizar sequência" : "Organizar sequência"}
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Link>
-      </Button>
     </article>
   );
 }
