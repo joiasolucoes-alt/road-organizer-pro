@@ -11,22 +11,14 @@ import {
   Shuffle,
   Wallet,
 } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
-import { DeliveryDetailsDrawer } from "@/components/DeliveryDetailsDrawer";
 import { SortableList } from "@/components/SortableList";
 import { SquareCard } from "@/components/SquareCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { fmtCurrency, fmtDate, fmtInt, fmtWeight } from "@/lib/format";
 import { batchTotals, squareTotals, store, useStore } from "@/services/store";
-import type {
-  Batch,
-  Delivery,
-  DeliveryIssueReason,
-  RouteChange,
-  Square,
-} from "@/types";
+import type { Batch, Square } from "@/types";
 
 export const Route = createFileRoute("/rota/$routeCode/pracas")({
   component: PracasPage,
@@ -34,7 +26,6 @@ export const Route = createFileRoute("/rota/$routeCode/pracas")({
 
 function PracasPage() {
   const { routeCode } = useParams({ from: "/rota/$routeCode/pracas" });
-  const [detail, setDetail] = useState<Delivery | null>(null);
   const batch = useStore((s) =>
     s.batches.find((b) => b.routeCode === routeCode),
   )!;
@@ -72,8 +63,6 @@ function PracasPage() {
           <StatusBadge status={batch.status} />
         </div>
       </header>
-
-      <DeliveryDetailsDrawer delivery={detail} onClose={() => setDetail(null)} />
 
       <div className="grid gap-4 xl:grid-cols-[250px_minmax(0,1fr)_320px]">
         <aside className="order-2 space-y-3 xl:order-1 xl:sticky xl:top-28 xl:self-start">
