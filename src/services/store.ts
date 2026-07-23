@@ -1,9 +1,11 @@
 import { useSyncExternalStore } from "react";
-import { buildInitialBatch, drivers as seedDrivers } from "@/mocks/data";
+import { buildInitialBatch, buildBatchFromDeliveries, drivers as seedDrivers } from "@/mocks/data";
+import { supabase, hasRemote } from "@/services/supabase";
 import type {
   AdminSession,
   AppNotification,
   Batch,
+  Delivery,
   DeliveryIssueReason,
   Driver,
   DriverSession,
@@ -52,6 +54,10 @@ let state: State = { batches: [], drivers: [], notifications: [] };
 let hydrated = false;
 const listeners = new Set<() => void>();
 
+/** local = sem Supabase configurado · syncing = carregando · ready = sincronizado */
+export type SyncStatus = "local" | "syncing" | "ready" | "error";
+let syncStatus: SyncStatus = hasRemote ? "syncing" : "local";
+
 function persist() {
   if (typeof window !== "undefined")
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -64,8 +70,11 @@ function emit() {
 function ensureHydrated() {
   if (hydrated) return;
   if (typeof window === "undefined") return;
+  // localStorage primeiro: a tela pinta na hora. O remoto chega logo depois
+  // e substitui — evita a demo começar com um spinner.
   state = load();
   hydrated = true;
+  void bootstrapRemote();
 }
 
 function subscribe(cb: () => void) {
@@ -94,6 +103,157 @@ export function useStore<T>(selector: (s: State) => T): T {
   );
 }
 
+/**
+ * Enquanto for "syncing" as telas devem mostrar carregando em vez de
+ * "não encontrado" — senão o motorista abre o link e vê um erro que some.
+ */
+export function useSyncStatus(): SyncStatus {
+  return useSyncExternalStore(
+    subscribe,
+    () => syncStatus,
+    () => "syncing" as SyncStatus,
+  );
+}
+
+// --- sincronização com Supabase -------------------------------------------
+
+function batchRow(b: Batch) {
+  return {
+    id: b.id,
+    route_code: b.routeCode,
+    access_code: b.accessCode,
+    status: b.status,
+    payload: b as unknown as Record<string, unknown>,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+async function pullRemote(): Promise<State | null> {
+  if (!supabase) return null;
+  const [b, d, n] = await Promise.all([
+    supabase.from("batches").select("payload, updated_at").order("updated_at", { ascending: false }),
+    supabase.from("drivers").select("id, nome, telefone").order("created_at"),
+    supabase
+      .from("notifications")
+      .select("id, kind, batch_id, title, description, read, created_at")
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
+  if (b.error) throw b.error;
+  if (d.error) throw d.error;
+  if (n.error) throw n.error;
+
+  return {
+    batches: (b.data ?? []).map((r) => r.payload as unknown as Batch),
+    drivers: (d.data ?? []) as Driver[],
+    notifications: (n.data ?? []).map((r) => ({
+      id: r.id as string,
+      kind: r.kind as NotificationKind,
+      batchId: (r.batch_id as string | null) ?? undefined,
+      title: r.title as string,
+      description: (r.description as string | null) ?? undefined,
+      timestamp: r.created_at as string,
+      read: r.read as boolean,
+    })),
+  };
+}
+
+async function pushRemote(s: State) {
+  if (!supabase) return;
+  const ops = [
+    supabase.from("batches").upsert(s.batches.map(batchRow)),
+    supabase.from("drivers").upsert(
+      s.drivers.map((d) => ({ id: d.id, nome: d.nome, telefone: d.telefone })),
+    ),
+  ];
+  if (s.notifications.length > 0) {
+    ops.push(
+      supabase.from("notifications").upsert(
+        s.notifications.map((n) => ({
+          id: n.id,
+          kind: n.kind,
+          batch_id: n.batchId ?? null,
+          title: n.title,
+          description: n.description ?? null,
+          read: n.read,
+          created_at: n.timestamp,
+        })),
+      ),
+    );
+  }
+  const results = await Promise.all(ops);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
+}
+
+let lastLocalWrite = 0;
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+
+function schedulePush() {
+  if (!supabase) return;
+  lastLocalWrite = Date.now();
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    void pushRemote(state)
+      .then(() => {
+        lastLocalWrite = Date.now();
+      })
+      .catch((e) => console.error("[master-rotas] falha ao salvar:", e));
+  }, 300);
+}
+
+async function bootstrapRemote() {
+  if (!supabase) {
+    syncStatus = "local";
+    return;
+  }
+  try {
+    const remote = await pullRemote();
+    if (!remote) return;
+    // Só semeia se o banco estiver realmente virgem. Sem esta checagem,
+    // apagar todos os lotes faria o seed local ressuscitá-los no próximo boot.
+    const virgem = remote.batches.length === 0 && remote.drivers.length === 0;
+    if (virgem) {
+      await pushRemote(state);
+    } else {
+      state = remote;
+      persist();
+    }
+    syncStatus = "ready";
+    watchRemote();
+  } catch (e) {
+    console.error("[master-rotas] falha ao sincronizar:", e);
+    syncStatus = "error";
+  }
+  emit();
+}
+
+let watching = false;
+
+function watchRemote() {
+  if (!supabase || watching) return;
+  watching = true;
+  const onChange = () => {
+    // Ignora o eco da própria escrita e não atropela uma edição em curso.
+    if (Date.now() - lastLocalWrite < 2500) return;
+    void pullRemote()
+      .then((remote) => {
+        if (!remote) return;
+        state = remote;
+        persist();
+        emit();
+      })
+      .catch((e) => console.error("[master-rotas] falha ao atualizar:", e));
+  };
+
+  supabase
+    .channel("master-rotas")
+    .on("postgres_changes", { event: "*", schema: "public", table: "batches" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, onChange)
+    .subscribe();
+}
+
 function update(mut: (s: State) => void) {
   ensureHydrated();
   mut(state);
@@ -109,6 +269,7 @@ function update(mut: (s: State) => void) {
     notifications: [...state.notifications],
   };
   persist();
+  schedulePush();
   emit();
 }
 
@@ -177,7 +338,14 @@ export const store = {
     ensureHydrated();
     return state.drivers;
   },
-  reset() {
+  /** Zera local E remoto — senão o realtime traria os lotes antigos de volta. */
+  async reset() {
+    if (supabase) {
+      await Promise.all([
+        supabase.from("batches").delete().neq("id", ""),
+        supabase.from("notifications").delete().neq("id", ""),
+      ]).catch((e) => console.error("[master-rotas] falha ao resetar:", e));
+    }
     update((s) => {
       Object.assign(s, initialState());
     });
@@ -186,15 +354,28 @@ export const store = {
       window.localStorage.removeItem(DRIVER_SESSION_KEY);
     }
   },
-  createBatchFromImport(): Batch {
+  /**
+   * `input` vem da planilha real do Fusion. Sem ele, cai no lote mockado —
+   * o caminho antigo continua servindo de plano B se a leitura falhar.
+   */
+  createBatchFromImport(input?: {
+    deliveries: Delivery[];
+    carga: number;
+  }): Batch {
     let created: Batch | null = null;
     update((s) => {
       const base = buildInitialBatch();
       const seq = s.batches.length + 1;
       const day = new Date().toISOString().slice(0, 10);
-      const carga = 28860 + seq * 7;
+      const imported = input
+        ? buildBatchFromDeliveries(input.deliveries)
+        : null;
+      const carga = input?.carga || 28860 + seq * 7;
       const nb: Batch = {
         ...base,
+        ...(imported
+          ? { squares: imported.squares, deliveries: imported.deliveries }
+          : {}),
         id: `batch-${Date.now()}`,
         codigo: `LT-${day}-${String(seq).padStart(3, "0")}`,
         carga,
@@ -222,6 +403,14 @@ export const store = {
       if (!b) return;
       if (b.status === "confirmado" || b.status === "arquivo_gerado") return;
       s.batches = s.batches.filter((x) => x.id !== id);
+      // O upsert não remove linhas: a exclusão precisa ir explícita ao banco.
+      void supabase
+        ?.from("batches")
+        .delete()
+        .eq("id", id)
+        .then(({ error }) => {
+          if (error) console.error("[master-rotas] falha ao excluir:", error);
+        });
       pushNotification(s, "lote_excluido", `Lote ${b.codigo} excluído`);
     });
   },
@@ -243,21 +432,29 @@ export const store = {
         .map((id, i) => {
           const sq = map.get(id);
           if (!sq) return null;
-          const wasChanged = sq.ordemAtual !== i + 1;
-          if (wasChanged) {
-            b.changes = b.changes.filter(
-              (c) => !(c.tipo === "praca" && c.targetId === id),
-            );
+          const novaPosicao = i + 1;
+          // Compara sempre contra a ordem ORIGINAL do Fusion, nunca contra a
+          // posição atual: senão mover uma praça e devolvê-la ao lugar deixa
+          // um change com ordemOriginal === ordemNova, que trava a confirmação.
+          const previous = b.changes.find(
+            (c) => c.tipo === "praca" && c.targetId === id,
+          );
+          b.changes = b.changes.filter(
+            (c) => !(c.tipo === "praca" && c.targetId === id),
+          );
+          if (novaPosicao !== sq.ordemOriginal) {
             b.changes.push({
-              id: `chg-${Date.now()}-${id}`,
+              id: previous?.id ?? `chg-${Date.now()}-${id}`,
               tipo: "praca",
               targetId: id,
               ordemOriginal: sq.ordemOriginal,
-              ordemNova: i + 1,
+              ordemNova: novaPosicao,
+              motivo: previous?.motivo,
+              observacao: previous?.observacao,
               timestamp: new Date().toISOString(),
             });
           }
-          return { ...sq, ordemAtual: i + 1 };
+          return { ...sq, ordemAtual: novaPosicao };
         })
         .filter(Boolean) as typeof b.squares;
       b.squares = reordered;
@@ -280,16 +477,24 @@ export const store = {
         const originalPosition = originalPositions.get(did) ?? posInSquare;
         del.ordemAtual = posInSquare;
         const changed = posInSquare !== originalPosition;
+        // Preserva ocorrência/justificativa já registradas: reordenar não pode
+        // apagar silenciosamente um problema relatado pelo motorista.
+        const previous = b.changes.find(
+          (c) => c.tipo === "entrega" && c.targetId === did,
+        );
         b.changes = b.changes.filter(
           (c) => !(c.tipo === "entrega" && c.targetId === did),
         );
-        if (changed) {
+        if (changed || previous?.ocorrencia) {
           b.changes.push({
-            id: `chg-${Date.now()}-${did}`,
+            id: previous?.id ?? `chg-${Date.now()}-${did}`,
             tipo: "entrega",
             targetId: did,
             ordemOriginal: originalPosition,
             ordemNova: posInSquare,
+            motivo: previous?.motivo,
+            ocorrencia: previous?.ocorrencia,
+            observacao: previous?.observacao,
             timestamp: new Date().toISOString(),
           });
         }
@@ -313,9 +518,14 @@ export const store = {
         const del = b.deliveries.find((d) => d.id === did);
         if (del) del.ordemAtual = idx + 1;
       });
-      b.changes = b.changes.filter((c) => {
-        if (c.tipo !== "entrega") return true;
-        return !sq.deliveryIds.includes(c.targetId);
+      // Restaurar a ordem não apaga ocorrências — elas descrevem um problema
+      // real da entrega, não uma preferência de sequência.
+      b.changes = b.changes.flatMap((c) => {
+        if (c.tipo !== "entrega" || !sq.deliveryIds.includes(c.targetId))
+          return [c];
+        if (!c.ocorrencia) return [];
+        const pos = sq.deliveryIds.indexOf(c.targetId) + 1;
+        return [{ ...c, ordemOriginal: pos, ordemNova: pos, motivo: undefined }];
       });
     });
   },
@@ -338,9 +548,13 @@ export const store = {
         (c) => c.tipo === "entrega" && c.targetId === deliveryId,
       );
 
+      // Ocorrência é um campo próprio: "Endereço errado" é um problema relatado,
+      // não uma justificativa de reordenação. Misturar os dois fazia a tela de
+      // resumo exibir a ocorrência como se justificasse uma troca de ordem.
       if (!reason) {
         if (existing) {
-          existing.motivo = undefined;
+          existing.ocorrencia = undefined;
+          // Sem ocorrência e sem reordenação, o registro deixa de existir.
           if (existing.ordemOriginal === existing.ordemNova) {
             b.changes = b.changes.filter((c) => c.id !== existing.id);
           }
@@ -351,7 +565,7 @@ export const store = {
       if (existing) {
         existing.ordemOriginal = originalPosition;
         existing.ordemNova = currentPosition;
-        existing.motivo = reason;
+        existing.ocorrencia = reason;
         existing.timestamp = new Date().toISOString();
         return;
       }
@@ -362,7 +576,7 @@ export const store = {
         targetId: deliveryId,
         ordemOriginal: originalPosition,
         ordemNova: currentPosition,
-        motivo: reason,
+        ocorrencia: reason,
         timestamp: new Date().toISOString(),
       });
       if (b.status === "disponivel") b.status = "em_edicao";
@@ -401,7 +615,13 @@ export const store = {
           if (del) del.ordemAtual = idx + 1;
         });
       });
-      b.changes = [];
+      // Idem: preserva ocorrências, descarta apenas as reordenações.
+      b.changes = b.changes.flatMap((c) => {
+        if (c.tipo !== "entrega" || !c.ocorrencia) return [];
+        const sq = b.squares.find((x) => x.deliveryIds.includes(c.targetId));
+        const pos = sq ? sq.deliveryIds.indexOf(c.targetId) + 1 : c.ordemNova;
+        return [{ ...c, ordemOriginal: pos, ordemNova: pos, motivo: undefined }];
+      });
       if (b.status === "em_edicao") b.status = "disponivel";
     });
   },
@@ -486,9 +706,14 @@ export const driverAccess = {
       const b = s.batches.find((x) => x.id === batchId);
       if (!b) return;
       if (opts?.regenerate || !b.accessGeneratedAt) {
-        b.routeCode = uniqueRouteCode(
-          s.batches.filter((x) => x.id !== batchId),
-        );
+        // O routeCode é a chave da sessão do motorista e do link já enviado.
+        // Regenerar rotaciona apenas o código de acesso: invalida o acesso
+        // antigo sem derrubar quem está com o link certo.
+        if (!b.accessGeneratedAt) {
+          b.routeCode = uniqueRouteCode(
+            s.batches.filter((x) => x.id !== batchId),
+          );
+        }
         b.accessCode = randAccessCode();
         b.accessGeneratedAt = new Date().toISOString();
         pushNotification(s, "acesso_gerado", `Acesso gerado`, {

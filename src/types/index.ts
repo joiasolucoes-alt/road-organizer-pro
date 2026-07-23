@@ -62,9 +62,17 @@ export interface RouteChange {
   targetId: string;
   ordemOriginal: number;
   ordemNova: number;
+  /** Justificativa da reordenação (ver CHANGE_REASONS). */
   motivo?: string;
+  /** Problema relatado na entrega — independente de ter havido reordenação. */
+  ocorrencia?: DeliveryIssueReason;
   observacao?: string;
   timestamp: string;
+}
+
+/** Um change só exige justificativa se a posição realmente mudou. */
+export function isReorder(c: RouteChange): boolean {
+  return c.ordemOriginal !== c.ordemNova;
 }
 
 export interface Batch {

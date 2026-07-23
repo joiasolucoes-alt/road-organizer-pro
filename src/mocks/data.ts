@@ -12,6 +12,22 @@ const toTitle = (s: string) =>
     .replace(/\bDo\b/g, "do")
     .replace(/\bE\b/g, "e");
 
+/**
+ * O Fusion exporta tudo em CAIXA ALTA. Convertemos para Title Case só na
+ * exibição — os dados de origem seguem intactos no arquivo.
+ */
+export function normalizeDeliveries(list: Delivery[]): Delivery[] {
+  return list.map((d) => ({
+    ...d,
+    cliente: toTitle(d.cliente),
+    razaoSocial: toTitle(d.razaoSocial),
+    endereco: toTitle(d.endereco),
+    bairro: toTitle(d.bairro),
+    cidade: toTitle(d.cidade),
+    praca: toTitle(d.praca),
+  }));
+}
+
 // Normalize a bit for display
 for (const d of deliveries) {
   d.cliente = toTitle(d.cliente);
@@ -76,6 +92,21 @@ export function buildInitialBatch(): Batch {
     squares,
     deliveries: JSON.parse(JSON.stringify(deliveries)) as Delivery[],
     changes: [],
+  };
+}
+
+/**
+ * Monta praças + entregas a partir de uma planilha real do Fusion.
+ * Mesma regra do mock: uma praça é a combinação dia + praça.
+ */
+export function buildBatchFromDeliveries(list: Delivery[]): {
+  squares: Square[];
+  deliveries: Delivery[];
+} {
+  const normalized = normalizeDeliveries(list);
+  return {
+    squares: buildSquares(normalized),
+    deliveries: normalized,
   };
 }
 

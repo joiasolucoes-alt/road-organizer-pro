@@ -5,32 +5,64 @@ import {
   useNavigate,
   useParams,
 } from "@tanstack/react-router";
-import { ArrowLeft, CalendarDays, LogOut, Package, RouteIcon, Truck } from "lucide-react";
+import { ArrowLeft, CalendarDays, Loader2, LogOut, Package, RouteIcon, Truck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppLogo } from "@/components/AppLogo";
 import { StatusBadge } from "@/components/StatusBadge";
 import { fmtDate } from "@/lib/format";
-import { batchTotals, driverSession, store, useStore } from "@/services/store";
+import {
+  batchTotals,
+  driverSession,
+  store,
+  useStore,
+  useSyncStatus,
+} from "@/services/store";
 
 export const Route = createFileRoute("/rota/$routeCode")({
+  // Aceita o código de acesso pela URL: o QR/link entra direto na rota.
+  // O retorno precisa ter `c` OPCIONAL (e não `c: string | undefined`), senão
+  // o TanStack passa a exigir a prop `search` em todo <Link> destas rotas.
+  validateSearch: (search: Record<string, unknown>): { c?: string } =>
+    typeof search.c === "string" ? { c: search.c } : {},
   component: DriverLayout,
 });
 
 function DriverLayout() {
   const { routeCode } = useParams({ from: "/rota/$routeCode" });
+  const { c: codeFromLink } = Route.useSearch();
   const navigate = useNavigate();
   const batch = useStore((s) => s.batches.find((b) => b.routeCode === routeCode));
+  const syncStatus = useSyncStatus();
   const [authorized, setAuthorized] = useState(false);
 
+  // Enquanto o Supabase não respondeu, ainda não dá para afirmar que a rota
+  // não existe nem que o acesso é inválido.
+  const loading = syncStatus === "syncing";
+
   useEffect(() => {
+    if (loading) return;
     const s = driverSession.get();
-    if (!s || s.routeCode !== routeCode) {
-      void navigate({ to: "/rota" });
+    if (s && s.routeCode === routeCode) {
+      setAuthorized(true);
       return;
     }
-    setAuthorized(true);
-  }, [routeCode, navigate]);
+    // Login automático quando o link carrega o código correto.
+    if (codeFromLink && driverSession.login(routeCode, codeFromLink)) {
+      setAuthorized(true);
+      return;
+    }
+    void navigate({ to: "/rota" });
+  }, [routeCode, navigate, codeFromLink, loading]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background p-6">
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Carregando sua rota…</p>
+      </div>
+    );
+  }
 
   const driver = batch
     ? store.getDrivers().find((d) => d.id === batch.motoristaId)

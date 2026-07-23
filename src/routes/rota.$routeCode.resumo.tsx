@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ChangeIndicator } from "@/components/ChangeIndicator";
@@ -25,6 +25,7 @@ import {
 import { fmtInt } from "@/lib/format";
 import { CHANGE_REASONS } from "@/mocks/data";
 import { store, useStore } from "@/services/store";
+import { isReorder } from "@/types";
 
 export const Route = createFileRoute("/rota/$routeCode/resumo")({
   component: ResumoPage,
@@ -45,8 +46,13 @@ function ResumoPage() {
     (a, b) => a.ordemAtual - b.ordemAtual,
   );
 
-  const changedSquares = batch.changes.filter((c) => c.tipo === "praca");
-  const changedDeliveries = batch.changes.filter((c) => c.tipo === "entrega");
+  // Só reordenações exigem justificativa. Ocorrências são relatos de problema
+  // e não bloqueiam a confirmação da rota.
+  const reorders = batch.changes.filter(isReorder);
+  const ocorrencias = batch.changes.filter((c) => c.ocorrencia);
+  const changedSquares = reorders.filter((c) => c.tipo === "praca");
+  const changedDeliveries = reorders.filter((c) => c.tipo === "entrega");
+  const semJustificativa = reorders.filter((c) => !c.motivo);
 
   return (
     <div className="space-y-5 pb-24">
@@ -67,12 +73,12 @@ function ResumoPage() {
         </p>
       </header>
 
-      {batch.changes.length > 0 &&
-        batch.changes.some((c) => !c.motivo) && (
-          <div className="rounded-lg border-l-4 border-[color:var(--brand-warn)] bg-[color:var(--brand-warn-bg)] px-3 py-2 text-xs font-medium text-[color:var(--brand-warn-fg)]">
-            Informe o motivo de cada alteração antes de confirmar a rota.
-          </div>
-        )}
+      {semJustificativa.length > 0 && (
+        <div className="rounded-lg border-l-4 border-[color:var(--brand-warn)] bg-[color:var(--brand-warn-bg)] px-3 py-2 text-xs font-medium text-[color:var(--brand-warn-fg)]">
+          Informe o motivo de {semJustificativa.length} alteração(ões) antes de
+          confirmar a rota.
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Praças alteradas" value={fmtInt(changedSquares.length)} />
@@ -85,10 +91,7 @@ function ResumoPage() {
           value={fmtInt(changedDeliveries.length)}
           tone="brand"
         />
-        <StatCard
-          label="Justificativas"
-          value={fmtInt(batch.changes.filter((c) => c.motivo).length)}
-        />
+        <StatCard label="Ocorrências" value={fmtInt(ocorrencias.length)} />
       </div>
 
       <section className="grid gap-4 md:grid-cols-2">
@@ -113,7 +116,43 @@ function ResumoPage() {
         />
       </section>
 
-      {changedSquares.length + changedDeliveries.length > 0 && (
+      {ocorrencias.length > 0 && (
+        <section className="rounded-2xl border bg-card p-4 shadow-sm">
+          <h2 className="text-sm font-semibold">Ocorrências registradas</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Problemas relatados nas entregas. Não impedem a confirmação — a
+            equipe logística é notificada.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {ocorrencias.map((c) => {
+              const entrega = batch.deliveries.find(
+                (d) => d.id === c.targetId,
+              );
+              return (
+                <li
+                  key={`oc-${c.id}`}
+                  className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3"
+                >
+                  <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">
+                      {entrega?.cliente ?? c.targetId}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {entrega?.bairro}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-destructive/10 px-2.5 py-1 text-[11px] font-semibold text-destructive">
+                    {c.ocorrencia}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {reorders.length > 0 && (
         <section className="rounded-2xl border bg-card p-4 shadow-sm">
           <h2 className="text-sm font-semibold">
             Justificativa das alterações
@@ -123,7 +162,7 @@ function ResumoPage() {
             rota.
           </p>
           <ul className="mt-3 space-y-3">
-            {batch.changes.map((c) => {
+            {reorders.map((c) => {
               const label =
                 c.tipo === "praca"
                   ? batch.squares.find((s) => s.id === c.targetId)?.nome
@@ -207,10 +246,9 @@ function ResumoPage() {
           <Button
             className="flex-[2]"
             onClick={() => {
-              const missing = batch.changes.filter((c) => !c.motivo);
-              if (missing.length > 0) {
+              if (semJustificativa.length > 0) {
                 toast.error(
-                  `Informe o motivo de ${missing.length} alteração(ões) antes de confirmar.`,
+                  `Informe o motivo de ${semJustificativa.length} alteração(ões) antes de confirmar.`,
                 );
                 return;
               }

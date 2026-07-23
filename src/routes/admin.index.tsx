@@ -28,6 +28,7 @@ function OverviewPage() {
     (acc, b) => {
       const t = batchTotals(b);
       acc.entregas += t.entregas;
+      acc.pracas += t.pracas;
       acc.peso += t.peso;
       acc.valor += t.valor;
       if (b.status === "disponivel" || b.status === "em_edicao")
@@ -36,7 +37,7 @@ function OverviewPage() {
         acc.confirmadas += 1;
       return acc;
     },
-    { entregas: 0, peso: 0, valor: 0, aguardando: 0, confirmadas: 0 },
+    { entregas: 0, pracas: 0, peso: 0, valor: 0, aguardando: 0, confirmadas: 0 },
   );
 
   return (
@@ -68,8 +69,8 @@ function OverviewPage() {
           icon={<ClipboardList className="h-4 w-4" />}
         />
         <StatCard
-          label="Cargas disponíveis"
-          value={fmtInt(batches.length)}
+          label="Praças planejadas"
+          value={fmtInt(aggregate.pracas)}
           icon={<Truck className="h-4 w-4" />}
           tone="brand"
         />

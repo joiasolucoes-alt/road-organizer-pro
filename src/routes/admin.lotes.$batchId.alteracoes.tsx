@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Download, FileCheck2 } from "lucide-react";
+import { AlertCircle, ArrowLeft, Download, FileCheck2 } from "lucide-react";
 import { toast } from "sonner";
 import { ChangeIndicator } from "@/components/ChangeIndicator";
 import { StatCard } from "@/components/StatCard";
@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { fmtDateTime, fmtInt } from "@/lib/format";
 import { batchTotals, store, useStore } from "@/services/store";
+import { isReorder } from "@/types";
 
 export const Route = createFileRoute("/admin/lotes/$batchId/alteracoes")({
   head: () => ({
@@ -37,8 +38,10 @@ function AlteracoesPage() {
   }
 
   const t = batchTotals(batch);
-  const changedSquares = batch.changes.filter((c) => c.tipo === "praca");
-  const changedDeliveries = batch.changes.filter((c) => c.tipo === "entrega");
+  const reorders = batch.changes.filter(isReorder);
+  const ocorrencias = batch.changes.filter((c) => c.ocorrencia);
+  const changedSquares = reorders.filter((c) => c.tipo === "praca");
+  const changedDeliveries = reorders.filter((c) => c.tipo === "entrega");
   const dr = store.getDrivers().find((d) => d.id === batch.motoristaId);
   const originalOrder = [...batch.squares].sort(
     (a, b) => a.ordemOriginal - b.ordemOriginal,
@@ -54,10 +57,15 @@ function AlteracoesPage() {
       "PEDIDO",
       "PESO",
       "VALOR",
+      "OCORRENCIA",
+      "MOTIVO",
     ]];
     batch!.squares.forEach((sq, si) => {
       sq.deliveryIds.forEach((did, di) => {
         const d = batch!.deliveries.find((x) => x.id === did)!;
+        const chg = batch!.changes.find(
+          (c) => c.tipo === "entrega" && c.targetId === did,
+        );
         rows.push([
           String(d.ordemOriginal),
           String((si + 1) * 100 + (di + 1)),
@@ -67,6 +75,8 @@ function AlteracoesPage() {
           d.pedido,
           d.peso.toString(),
           d.valor.toString(),
+          chg?.ocorrencia ?? "",
+          chg?.motivo ?? "",
         ]);
       });
     });
@@ -139,12 +149,9 @@ function AlteracoesPage() {
         />
         <StatCard
           label="Com justificativa"
-          value={fmtInt(batch.changes.filter((c) => c.motivo).length)}
+          value={fmtInt(reorders.filter((c) => c.motivo).length)}
         />
-        <StatCard
-          label="Sem justificativa"
-          value={fmtInt(batch.changes.filter((c) => !c.motivo).length)}
-        />
+        <StatCard label="Ocorrências" value={fmtInt(ocorrencias.length)} />
       </div>
 
       <section className="grid gap-4 md:grid-cols-2">
@@ -192,14 +199,21 @@ function AlteracoesPage() {
                       atual={c.ordemNova}
                     />
                   </div>
-                  <p className="mt-2 text-sm">
-                    <span className="font-semibold">Motivo:</span>{" "}
-                    {c.motivo ?? (
-                      <span className="italic text-muted-foreground">
-                        não informado
-                      </span>
-                    )}
-                  </p>
+                  {c.ocorrencia && (
+                    <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2.5 py-1 text-[11px] font-semibold text-destructive">
+                      <AlertCircle className="h-3 w-3" /> {c.ocorrencia}
+                    </p>
+                  )}
+                  {isReorder(c) && (
+                    <p className="mt-2 text-sm">
+                      <span className="font-semibold">Motivo:</span>{" "}
+                      {c.motivo ?? (
+                        <span className="italic text-muted-foreground">
+                          não informado
+                        </span>
+                      )}
+                    </p>
+                  )}
                   {c.observacao && (
                     <p className="text-xs text-muted-foreground">
                       Observação: {c.observacao}

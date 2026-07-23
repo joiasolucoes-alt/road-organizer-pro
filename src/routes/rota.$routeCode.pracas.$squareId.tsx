@@ -258,16 +258,11 @@ function getOriginalDeliveryPositions(
   return new Map(byOriginalOrder.map((id, index) => [id, index + 1]));
 }
 
-function getDeliveryIssueReason(changes: RouteChange[], deliveryId: string) {
-  const reason = changes.find(
+function getDeliveryIssueReason(
+  changes: RouteChange[],
+  deliveryId: string,
+): DeliveryIssueReason | undefined {
+  return changes.find(
     (change) => change.tipo === "entrega" && change.targetId === deliveryId,
-  )?.motivo;
-  if (
-    reason === "Endereço errado" ||
-    reason === "Restrição de horário" ||
-    reason === "Inviável de entrega"
-  ) {
-    return reason satisfies DeliveryIssueReason;
-  }
-  return undefined;
+  )?.ocorrencia;
 }

@@ -8,7 +8,7 @@ import {
 } from "@/lib/format";
 import { batchTotals, useStore } from "@/services/store";
 
-export const Route = createFileRoute("/admin/lotes")({
+export const Route = createFileRoute("/admin/lotes/")({
   component: LotesPage,
 });
 

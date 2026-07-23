@@ -15,10 +15,10 @@ import { Route as RotaIndexRouteImport } from './routes/rota.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as RotaRouteCodeRouteImport } from './routes/rota.$routeCode'
 import { Route as AdminMotoristasRouteImport } from './routes/admin.motoristas'
-import { Route as AdminLotesRouteImport } from './routes/admin.lotes'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminImportRouteImport } from './routes/admin.import'
 import { Route as RotaRouteCodeIndexRouteImport } from './routes/rota.$routeCode.index'
+import { Route as AdminLotesIndexRouteImport } from './routes/admin.lotes.index'
 import { Route as RotaRouteCodeResumoRouteImport } from './routes/rota.$routeCode.resumo'
 import { Route as RotaRouteCodePracasRouteImport } from './routes/rota.$routeCode.pracas'
 import { Route as RotaRouteCodeConfirmadaRouteImport } from './routes/rota.$routeCode.confirmada'
@@ -56,11 +56,6 @@ const AdminMotoristasRoute = AdminMotoristasRouteImport.update({
   path: '/motoristas',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminLotesRoute = AdminLotesRouteImport.update({
-  id: '/lotes',
-  path: '/lotes',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -75,6 +70,11 @@ const RotaRouteCodeIndexRoute = RotaRouteCodeIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => RotaRouteCodeRoute,
+} as any)
+const AdminLotesIndexRoute = AdminLotesIndexRouteImport.update({
+  id: '/lotes/',
+  path: '/lotes/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const RotaRouteCodeResumoRoute = RotaRouteCodeResumoRouteImport.update({
   id: '/resumo',
@@ -92,9 +92,9 @@ const RotaRouteCodeConfirmadaRoute = RotaRouteCodeConfirmadaRouteImport.update({
   getParentRoute: () => RotaRouteCodeRoute,
 } as any)
 const AdminLotesBatchIdRoute = AdminLotesBatchIdRouteImport.update({
-  id: '/$batchId',
-  path: '/$batchId',
-  getParentRoute: () => AdminLotesRoute,
+  id: '/lotes/$batchId',
+  path: '/lotes/$batchId',
+  getParentRoute: () => AdminRoute,
 } as any)
 const RotaRouteCodePracasSquareIdRoute =
   RotaRouteCodePracasSquareIdRouteImport.update({
@@ -114,7 +114,6 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/admin/import': typeof AdminImportRoute
   '/admin/login': typeof AdminLoginRoute
-  '/admin/lotes': typeof AdminLotesRouteWithChildren
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/rota/$routeCode': typeof RotaRouteCodeRouteWithChildren
   '/admin/': typeof AdminIndexRoute
@@ -123,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/rota/$routeCode/confirmada': typeof RotaRouteCodeConfirmadaRoute
   '/rota/$routeCode/pracas': typeof RotaRouteCodePracasRouteWithChildren
   '/rota/$routeCode/resumo': typeof RotaRouteCodeResumoRoute
+  '/admin/lotes/': typeof AdminLotesIndexRoute
   '/rota/$routeCode/': typeof RotaRouteCodeIndexRoute
   '/admin/lotes/$batchId/alteracoes': typeof AdminLotesBatchIdAlteracoesRoute
   '/rota/$routeCode/pracas/$squareId': typeof RotaRouteCodePracasSquareIdRoute
@@ -131,7 +131,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/import': typeof AdminImportRoute
   '/admin/login': typeof AdminLoginRoute
-  '/admin/lotes': typeof AdminLotesRouteWithChildren
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/admin': typeof AdminIndexRoute
   '/rota': typeof RotaIndexRoute
@@ -139,6 +138,7 @@ export interface FileRoutesByTo {
   '/rota/$routeCode/confirmada': typeof RotaRouteCodeConfirmadaRoute
   '/rota/$routeCode/pracas': typeof RotaRouteCodePracasRouteWithChildren
   '/rota/$routeCode/resumo': typeof RotaRouteCodeResumoRoute
+  '/admin/lotes': typeof AdminLotesIndexRoute
   '/rota/$routeCode': typeof RotaRouteCodeIndexRoute
   '/admin/lotes/$batchId/alteracoes': typeof AdminLotesBatchIdAlteracoesRoute
   '/rota/$routeCode/pracas/$squareId': typeof RotaRouteCodePracasSquareIdRoute
@@ -149,7 +149,6 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/admin/import': typeof AdminImportRoute
   '/admin/login': typeof AdminLoginRoute
-  '/admin/lotes': typeof AdminLotesRouteWithChildren
   '/admin/motoristas': typeof AdminMotoristasRoute
   '/rota/$routeCode': typeof RotaRouteCodeRouteWithChildren
   '/admin/': typeof AdminIndexRoute
@@ -158,6 +157,7 @@ export interface FileRoutesById {
   '/rota/$routeCode/confirmada': typeof RotaRouteCodeConfirmadaRoute
   '/rota/$routeCode/pracas': typeof RotaRouteCodePracasRouteWithChildren
   '/rota/$routeCode/resumo': typeof RotaRouteCodeResumoRoute
+  '/admin/lotes/': typeof AdminLotesIndexRoute
   '/rota/$routeCode/': typeof RotaRouteCodeIndexRoute
   '/admin/lotes/$batchId/alteracoes': typeof AdminLotesBatchIdAlteracoesRoute
   '/rota/$routeCode/pracas/$squareId': typeof RotaRouteCodePracasSquareIdRoute
@@ -169,7 +169,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/import'
     | '/admin/login'
-    | '/admin/lotes'
     | '/admin/motoristas'
     | '/rota/$routeCode'
     | '/admin/'
@@ -178,6 +177,7 @@ export interface FileRouteTypes {
     | '/rota/$routeCode/confirmada'
     | '/rota/$routeCode/pracas'
     | '/rota/$routeCode/resumo'
+    | '/admin/lotes/'
     | '/rota/$routeCode/'
     | '/admin/lotes/$batchId/alteracoes'
     | '/rota/$routeCode/pracas/$squareId'
@@ -186,7 +186,6 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/import'
     | '/admin/login'
-    | '/admin/lotes'
     | '/admin/motoristas'
     | '/admin'
     | '/rota'
@@ -194,6 +193,7 @@ export interface FileRouteTypes {
     | '/rota/$routeCode/confirmada'
     | '/rota/$routeCode/pracas'
     | '/rota/$routeCode/resumo'
+    | '/admin/lotes'
     | '/rota/$routeCode'
     | '/admin/lotes/$batchId/alteracoes'
     | '/rota/$routeCode/pracas/$squareId'
@@ -203,7 +203,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/import'
     | '/admin/login'
-    | '/admin/lotes'
     | '/admin/motoristas'
     | '/rota/$routeCode'
     | '/admin/'
@@ -212,6 +211,7 @@ export interface FileRouteTypes {
     | '/rota/$routeCode/confirmada'
     | '/rota/$routeCode/pracas'
     | '/rota/$routeCode/resumo'
+    | '/admin/lotes/'
     | '/rota/$routeCode/'
     | '/admin/lotes/$batchId/alteracoes'
     | '/rota/$routeCode/pracas/$squareId'
@@ -268,13 +268,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMotoristasRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/lotes': {
-      id: '/admin/lotes'
-      path: '/lotes'
-      fullPath: '/admin/lotes'
-      preLoaderRoute: typeof AdminLotesRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/login': {
       id: '/admin/login'
       path: '/login'
@@ -295,6 +288,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/rota/$routeCode/'
       preLoaderRoute: typeof RotaRouteCodeIndexRouteImport
       parentRoute: typeof RotaRouteCodeRoute
+    }
+    '/admin/lotes/': {
+      id: '/admin/lotes/'
+      path: '/lotes'
+      fullPath: '/admin/lotes/'
+      preLoaderRoute: typeof AdminLotesIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/rota/$routeCode/resumo': {
       id: '/rota/$routeCode/resumo'
@@ -319,10 +319,10 @@ declare module '@tanstack/react-router' {
     }
     '/admin/lotes/$batchId': {
       id: '/admin/lotes/$batchId'
-      path: '/$batchId'
+      path: '/lotes/$batchId'
       fullPath: '/admin/lotes/$batchId'
       preLoaderRoute: typeof AdminLotesBatchIdRouteImport
-      parentRoute: typeof AdminLotesRoute
+      parentRoute: typeof AdminRoute
     }
     '/rota/$routeCode/pracas/$squareId': {
       id: '/rota/$routeCode/pracas/$squareId'
@@ -352,32 +352,22 @@ const AdminLotesBatchIdRouteChildren: AdminLotesBatchIdRouteChildren = {
 const AdminLotesBatchIdRouteWithChildren =
   AdminLotesBatchIdRoute._addFileChildren(AdminLotesBatchIdRouteChildren)
 
-interface AdminLotesRouteChildren {
-  AdminLotesBatchIdRoute: typeof AdminLotesBatchIdRouteWithChildren
-}
-
-const AdminLotesRouteChildren: AdminLotesRouteChildren = {
-  AdminLotesBatchIdRoute: AdminLotesBatchIdRouteWithChildren,
-}
-
-const AdminLotesRouteWithChildren = AdminLotesRoute._addFileChildren(
-  AdminLotesRouteChildren,
-)
-
 interface AdminRouteChildren {
   AdminImportRoute: typeof AdminImportRoute
   AdminLoginRoute: typeof AdminLoginRoute
-  AdminLotesRoute: typeof AdminLotesRouteWithChildren
   AdminMotoristasRoute: typeof AdminMotoristasRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminLotesBatchIdRoute: typeof AdminLotesBatchIdRouteWithChildren
+  AdminLotesIndexRoute: typeof AdminLotesIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminImportRoute: AdminImportRoute,
   AdminLoginRoute: AdminLoginRoute,
-  AdminLotesRoute: AdminLotesRouteWithChildren,
   AdminMotoristasRoute: AdminMotoristasRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminLotesBatchIdRoute: AdminLotesBatchIdRouteWithChildren,
+  AdminLotesIndexRoute: AdminLotesIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -420,3 +410,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

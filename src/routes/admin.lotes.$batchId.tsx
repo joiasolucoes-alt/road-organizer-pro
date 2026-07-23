@@ -11,6 +11,7 @@ import {
   Trash2,
   Truck,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { StatCard } from "@/components/StatCard";
@@ -73,7 +74,8 @@ function BatchDetailsPage() {
   const dias = Array.from(new Set(batch.squares.map((s) => s.data))).sort();
   const origin =
     typeof window !== "undefined" ? window.location.origin : "";
-  const link = `${origin}/rota/${batch.routeCode}`;
+  // O código vai embutido: quem abre o link (ou lê o QR) entra direto.
+  const link = `${origin}/rota/${batch.routeCode}?c=${batch.accessCode}`;
   const locked =
     batch.status === "confirmado" || batch.status === "arquivo_gerado";
 
@@ -232,25 +234,43 @@ function BatchDetailsPage() {
           <DialogHeader>
             <DialogTitle>Acesso do motorista gerado</DialogTitle>
             <DialogDescription>
-              Compartilhe o link abaixo com {dr?.nome}. Nesta versão, o acesso é
-              mockado.
+              Compartilhe o QR ou o link com {dr?.nome}. O acesso já vem
+              embutido — não é preciso digitar código.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">
+            <div className="flex flex-col items-center gap-3 rounded-lg border bg-card p-4">
+              <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-border">
+                <QRCodeSVG value={link} size={168} level="M" />
+              </div>
+              <p className="text-center text-xs text-muted-foreground">
+                O motorista aponta a câmera e entra direto na rota.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border bg-muted/40 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Código da rota
+                </p>
+                <p className="mt-1 font-mono text-2xl font-bold">
+                  {batch.routeCode}
+                </p>
+              </div>
+              <div className="rounded-lg border bg-muted/40 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Código de acesso
+                </p>
+                <p className="mt-1 font-mono text-2xl font-bold tracking-widest">
+                  {batch.accessCode}
+                </p>
+              </div>
+            </div>
             <div className="rounded-lg border bg-muted/40 p-3">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Link de acesso
               </p>
-              <p className="mt-1 break-all font-mono text-sm">{link}</p>
-            </div>
-            <div className="rounded-lg border bg-muted/40 p-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Código de acesso
-              </p>
-              <p className="mt-1 font-mono text-2xl font-bold tracking-widest">
-                {batch.accessCode}
-              </p>
+              <p className="mt-1 break-all font-mono text-xs">{link}</p>
             </div>
           </div>
 

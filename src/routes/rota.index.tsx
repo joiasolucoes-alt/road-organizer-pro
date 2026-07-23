@@ -151,22 +151,13 @@ function DriverLoginPage() {
           </Button>
         </form>
 
-        {batches.length > 0 && (
-          <details className="mt-5 rounded-xl border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
-            <summary className="cursor-pointer font-semibold text-foreground">
-              <Truck className="mr-1 inline h-3.5 w-3.5" />
-              Rotas de demonstração
-            </summary>
-            <ul className="mt-2 space-y-1.5">
-              {batches.map((b) => (
-                <li key={b.id} className="flex items-center justify-between gap-3 font-mono">
-                  <span>{b.routeCode}</span>
-                  <span className="tracking-widest">{b.accessCode}</span>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
+        <p className="mt-5 flex items-start gap-2 rounded-xl border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
+          <Truck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            Os códigos são enviados pelo operador logístico junto com o link da
+            rota. Pelo link, o acesso é automático.
+          </span>
+        </p>
       </main>
     </div>
   );
