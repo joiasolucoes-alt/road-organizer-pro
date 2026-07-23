@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   ArrowRight,
   CalendarDays,
-  ChevronDown,
   ChevronRight,
   ClipboardList,
   Package,
@@ -14,7 +13,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { DeliveryCard } from "@/components/DeliveryCard";
 import { DeliveryDetailsDrawer } from "@/components/DeliveryDetailsDrawer";
 import { SortableList } from "@/components/SortableList";
 import { SquareCard } from "@/components/SquareCard";
@@ -36,7 +34,6 @@ export const Route = createFileRoute("/rota/$routeCode/pracas")({
 
 function PracasPage() {
   const { routeCode } = useParams({ from: "/rota/$routeCode/pracas" });
-  const [expandedSquareId, setExpandedSquareId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Delivery | null>(null);
   const batch = useStore((s) =>
     s.batches.find((b) => b.routeCode === routeCode),
