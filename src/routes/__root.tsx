@@ -92,10 +92,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         property: "og:description",
         content:
-          "Painel logístico e app do motorista para reorganização de praças e entregas.",
+          "Master Rotas: web app da Master Distribuidora para organizar rotas e entregas geradas pelo sistema Fusion.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Master Rotas — Organização inteligente de rotas" },
+      { name: "twitter:description", content: "Master Rotas: web app da Master Distribuidora para organizar rotas e entregas geradas pelo sistema Fusion." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/28b99393-d063-4ad1-91f4-ddf29a4d2de8/id-preview-ba2212d8--8978f582-4838-4bf7-bbea-e3cf7f97288b.lovable.app-1784836162117.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/28b99393-d063-4ad1-91f4-ddf29a4d2de8/id-preview-ba2212d8--8978f582-4838-4bf7-bbea-e3cf7f97288b.lovable.app-1784836162117.png" },
     ],
     links: [
       {
