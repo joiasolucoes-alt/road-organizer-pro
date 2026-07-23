@@ -1,79 +1,47 @@
+# Reformular a organização de entregas (motorista)
 
-# Plano — encerrar a V0 do Master Rotas
+## Problema
+Hoje, ao entrar em uma praça e "Organizar entregas", cada entrega ocupa um card grande com peso, valor, itens, endereço completo, badges e botão de detalhes. A lista fica muito longa verticalmente, o usuário rola bastante e perde a noção da sequência — tanto no celular quanto no desktop.
 
-Baseado no que já está implementado (landing, admin dashboard/import/lotes/detalhes, geração de link de acesso, fluxo completo do motorista com reordenação, justificativas, confirmação e geração simulada do arquivo Fusion), estes são os itens do prompt inicial que ainda não estão cobertos ou estão pela metade. Tudo continua mockado em `localStorage`, sem backend real.
+## Objetivo
+Deixar a reordenação rápida e visual: a lista em si vira compacta (uma linha por entrega, tudo essencial visível), e os detalhes/ações ficam a um toque de distância. No desktop, aproveitar o espaço horizontal.
 
-## 1. Autenticação simples
+## Mudanças
 
-**Admin (`/admin/login`)**
-- Tela de login mockada (usuário/senha fixos ex. `admin` / `master`).
-- Sessão em `localStorage` (`master-rotas:auth`).
-- Layout `admin.tsx` passa a redirecionar para `/admin/login` se não houver sessão; botão "Sair" no header.
+### 1. Novo componente `DeliveryReorderRow` (linha compacta)
+Substitui o `DeliveryCard` grande dentro da tela de reordenação. Uma linha por entrega mostrando apenas:
+- número da posição (badge grande à esquerda, mesma cor do primary)
+- nome do cliente (truncado) + bairro/rua curta em segunda linha
+- pill de peso e pill de valor (compactos, à direita no desktop; abaixo no mobile)
+- indicador de "ordem alterada" (seta pequena, sem card grande)
+- indicador de ocorrência (ícone pequeno vermelho se houver)
 
-**Motorista (`/rota` — entrada por código)**
-- Substituir o link fixo `RT28860` da landing por um fluxo em duas etapas:
-  1. `/rota` → formulário mobile-first para digitar **código da rota** (`routeCode`) e **código de acesso** (`accessCode`).
-  2. Ao validar contra `store.getBatchByRoute`, marca `master-rotas:driver-session` no `localStorage` com `routeCode` autorizado e navega para `/rota/$routeCode`.
-- `rota.$routeCode.tsx` bloqueia acesso se a sessão não corresponder e reencaminha para `/rota`.
+Sem grid de 3 mini-stats, sem separador, sem botão "Ver detalhes" ocupando linha inteira, sem badge de "endereço confirmado".
 
-## 2. Gestão de motoristas e vínculo ao lote
+Altura-alvo: ~64px no mobile, ~56px no desktop (vs. ~260px hoje).
 
-- Nova página `/admin/motoristas` com CRUD mockado (nome, telefone, ativo).
-- Persistir motoristas no store (`state.drivers`) em vez do array estático de `mocks/data.ts`.
-- Em `admin.lotes.$batchId.tsx`, permitir **trocar o motorista** do lote via `Select` (só antes de "confirmado").
-- Bloquear "Gerar acesso do motorista" se o lote não tiver motorista.
+### 2. Ações por linha via toque/clique
+- Tocar na linha (área do texto) → abre o `DeliveryDetailsDrawer` já existente com todos os detalhes (endereço completo, itens, valor, peso, confirmação de endereço, ocorrência).
+- Botão "⋯" pequeno à direita → dropdown com "Registrar ocorrência" (as 3 opções atuais) e "Limpar ocorrência".
+- Handle de arraste (`GripVertical`) e setas ↑/↓ continuam vindo do `SortableList` (sem mudanças no componente sortable em si).
 
-## 3. Múltiplos lotes reais
+### 3. Layout responsivo da página
+- Mobile: lista em coluna única, linhas compactas, barra fixa inferior "Voltar / Salvar sequência" mantida.
+- Desktop (≥ lg): 2 colunas — coluna esquerda com a lista compacta ocupando ~60%, coluna direita fixa (sticky) com um resumo da praça (nome, data, cidade, nº de entregas, peso total, valor total, alertas de sequência alterada, botão "Restaurar sequência original", CTA "Salvar sequência").
+- O aviso "sequência alterada" e o botão "restaurar" saem do topo da lista e vão para o painel lateral no desktop; no mobile permanecem acima da lista, mas mais discretos (linha única).
 
-- Hoje `createBatchFromImport` sempre mantém um único lote mockado. Ajustar para **criar um novo `Batch` a cada importação** (novo `id`, `codigo`, `carga` incremental) reutilizando o dataset mockado como base.
-- Adicionar ação `store.deleteBatch(id)` e botão "Excluir lote" (com confirmação) em `/admin/lotes/$batchId`, permitido só em `disponivel`/`em_edicao`.
-- Filtro por status na lista `/admin/lotes`.
+### 4. Cabeçalho da praça enxuto
+Reduzir o header atual (título + linha meta + parágrafo instrucional) para: título + linha meta compacta. O parágrafo "Arraste os cards ou use as setas…" vira uma tooltip/hint pequena ao lado do primeiro item, apenas na primeira visita à praça (usando estado local; sem persistência).
 
-## 4. Visibilidade das alterações no admin
+### 5. Manter comportamento
+- Reordenação, ocorrências, restaurar sequência, modo somente-leitura (`locked`) e detecção de `changed` seguem a mesma lógica atual — só a apresentação muda.
+- `DeliveryCard` grande continua existindo (é usado em outros contextos como a visão confirmada); não será removido.
 
-- Nova aba/rota `/admin/lotes/$batchId/alteracoes` mostrando, quando a rota estiver `confirmado` ou `arquivo_gerado`:
-  - Comparativo "Ordem Fusion × Ordem Motorista" para praças e entregas (reaproveitando `ChangeIndicator`/`OrderColumn`).
-  - Lista das justificativas registradas (`RouteChange.motivo`, `observacao`, timestamp).
-  - Metadados: quem confirmou, quando, quando o arquivo foi gerado.
-- Indicador na lista de lotes de "N alterações pendentes de revisão".
-- Ação "Baixar arquivo Fusion" e "Baixar resumo JSON" também disponíveis para o admin (mesma lógica do motorista).
+## Arquivos afetados
+- Novo: `src/components/DeliveryReorderRow.tsx`
+- Editar: `src/routes/rota.$routeCode.pracas.$squareId.tsx` (usar a nova linha, adicionar layout 2-col no desktop, sidebar com resumo)
+- Sem mudanças em: `SortableList`, `DeliveryCard`, `DeliveryDetailsDrawer`, store, tipos.
 
-## 5. Notificações e histórico
-
-- `store.notifications`: array append-only de eventos (`lote_criado`, `acesso_gerado`, `rota_confirmada`, `arquivo_gerado`).
-- Sininho no header do admin com contador de não lidos e drawer `NotificationsDrawer`.
-- Eventos disparados nas ações correspondentes do store.
-
-## 6. Polimentos do fluxo do motorista
-
-- Exigir motivo em ao menos 1 alteração antes de habilitar "Confirmar organização da rota" quando houver alterações (hoje é opcional visualmente mas o prompt inicial pedia justificativa).
-- Botão "Restaurar ordem original" por praça e global, chamando novas ações `store.resetSquareOrder` / `store.resetAllOrders`.
-- Bloquear reordenação depois de `confirmado` (SortableList em modo somente leitura + banner "Rota confirmada, edição bloqueada").
-- Persistir a última rota acessada para reabrir direto (`/rota` mostra atalho "Continuar rota X").
-
-## 7. Landing e utilidades gerais
-
-- Landing: botão "Acessar como motorista" agora vai para `/rota` (form) em vez de link direto.
-- Rodapé: link discreto "Redefinir dados de demonstração" chamando `store.reset()` com confirmação (útil para apresentação).
-- Meta tags (`head()`) específicas em cada rota nova.
-
-## 8. Testes manuais rápidos
-
-Checklist ao final: login admin → importar → criar 2º lote → trocar motorista → gerar acesso → login do motorista pelo código → reordenar → justificar → confirmar → admin vê notificação → admin abre `/alteracoes` → gera arquivo Fusion → reset demo.
-
-## Detalhes técnicos
-
-- Novos arquivos:
-  - `src/routes/admin.login.tsx`
-  - `src/routes/admin.motoristas.tsx`
-  - `src/routes/admin.lotes.$batchId.alteracoes.tsx`
-  - `src/routes/rota.index.tsx` (formulário de entrada)
-  - `src/components/NotificationsDrawer.tsx`
-  - `src/components/DriverAccessForm.tsx`
-- Alterações em `src/services/store.ts`: `drivers`, `notifications`, `deleteBatch`, `assignDriver`, `resetSquareOrder`, `resetAllOrders`, `createBatchFromImport` gerando novo id/codigo, session helpers (`adminSession`, `driverSession`).
-- Alterações em `src/types/index.ts`: `Notification`, `Batch.arquivada?`, timestamps já existentes reaproveitados.
-- Sem novas dependências; usa componentes shadcn já instalados (`Dialog`, `Drawer`, `Select`, `Input`, `Sheet`).
-
-## Fora do escopo (mantido para pós-V0)
-
-Integração real com Fusion, parsing efetivo de XLS, backend/Lovable Cloud, autenticação real, notificações por e-mail/WhatsApp, geração de PDF impressa. Ficam explicitamente adiados.
+## Fora de escopo
+- Alterar a tela de reordenação de praças (essa não foi citada).
+- Backend, XLS, tipos ou store.
