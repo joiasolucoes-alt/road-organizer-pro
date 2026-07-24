@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
   BadgeCheck,
+  History,
   IdCard,
   Pencil,
   Phone,
@@ -37,14 +38,13 @@ import { cn } from "@/lib/utils";
 import { store, useStore } from "@/services/store";
 import {
   CNH_CATEGORIAS,
-  VEICULO_TIPOS,
   diasAteVencimento,
+  vehicleLabel,
   type CnhCategoria,
   type Driver,
-  type VeiculoTipo,
 } from "@/types";
 
-export const Route = createFileRoute("/admin/motoristas")({
+export const Route = createFileRoute("/admin/motoristas/")({
   head: () => ({
     meta: [
       { title: "Motoristas — Master Rotas" },
@@ -169,6 +169,8 @@ function DriverRow({
   usage: number;
   onEdit: () => void;
 }) {
+  const vehicles = useStore((s) => s.vehicles);
+  const veiculo = vehicles.find((v) => v.id === d.veiculoPadraoId);
   const cnhDias = diasAteVencimento(d.cnhValidade);
   const inativo = d.ativo === false;
 
@@ -223,10 +225,9 @@ function DriverRow({
               <IdCard className="h-3 w-3" /> CNH {d.cnhCategoria}
             </span>
           )}
-          {(d.veiculoPlaca || d.veiculoTipo) && (
+          {veiculo && (
             <span className="inline-flex items-center gap-1">
-              <Truck className="h-3 w-3" />
-              {[d.veiculoTipo, d.veiculoPlaca].filter(Boolean).join(" · ")}
+              <Truck className="h-3 w-3" /> {vehicleLabel(veiculo)}
             </span>
           )}
         </div>
@@ -237,6 +238,11 @@ function DriverRow({
       </p>
 
       <div className="flex shrink-0 gap-1">
+        <Button asChild size="icon" variant="ghost" aria-label="Ver histórico">
+          <Link to="/admin/motoristas/$driverId" params={{ driverId: d.id }}>
+            <History className="h-4 w-4" />
+          </Link>
+        </Button>
         <Button size="icon" variant="ghost" onClick={onEdit} aria-label="Editar">
           <Pencil className="h-4 w-4" />
         </Button>
@@ -280,6 +286,7 @@ function DriverDialog({
   submitLabel: React.ReactNode;
 }) {
   const [f, setF] = useState<Rascunho>(VAZIO);
+  const vehicles = useStore((s) => s.vehicles);
 
   // Recarrega o formulário sempre que o alvo da edição muda.
   useEffect(() => {
@@ -404,80 +411,30 @@ function DriverDialog({
             </Campo>
           </Secao>
 
-          <Secao titulo="Veículo" icon={<Truck className="h-4 w-4" />}>
-            <Campo label="Placa">
-              <Input
-                value={f.veiculoPlaca ?? ""}
-                onChange={(e) =>
-                  set("veiculoPlaca", e.target.value.toUpperCase())
-                }
-                placeholder="ABC1D23"
-                className="font-mono uppercase"
-              />
-            </Campo>
-            <Campo label="Tipo">
+          <Secao
+            titulo="Operacional"
+            icon={<BadgeCheck className="h-4 w-4" />}
+          >
+            <Campo
+              label="Veículo habitual"
+              hint="o da carga é definido no lote"
+            >
               <Select
-                value={f.veiculoTipo ?? ""}
-                onValueChange={(v) => set("veiculoTipo", v as VeiculoTipo)}
+                value={f.veiculoPadraoId ?? ""}
+                onValueChange={(v) => set("veiculoPadraoId", v)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue placeholder="Nenhum" />
                 </SelectTrigger>
                 <SelectContent>
-                  {VEICULO_TIPOS.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
+                  {vehicles.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {vehicleLabel(v)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Campo>
-            <Campo label="Modelo">
-              <Input
-                value={f.veiculoModelo ?? ""}
-                onChange={(e) => set("veiculoModelo", e.target.value)}
-                placeholder="VW Delivery 9.170"
-              />
-            </Campo>
-            <Campo label="Ano">
-              <Input
-                value={f.veiculoAno ?? ""}
-                onChange={(e) => set("veiculoAno", e.target.value)}
-                placeholder="2021"
-              />
-            </Campo>
-            <Campo label="Capacidade (kg)">
-              <Input
-                type="number"
-                min={0}
-                value={f.veiculoCapacidadeKg ?? ""}
-                onChange={(e) =>
-                  set(
-                    "veiculoCapacidadeKg",
-                    e.target.value ? Number(e.target.value) : undefined,
-                  )
-                }
-                placeholder="4000"
-              />
-            </Campo>
-            <Campo label="RENAVAM">
-              <Input
-                value={f.veiculoRenavam ?? ""}
-                onChange={(e) => set("veiculoRenavam", e.target.value)}
-              />
-            </Campo>
-            <Campo label="RNTRC / ANTT">
-              <Input
-                value={f.veiculoAntt ?? ""}
-                onChange={(e) => set("veiculoAntt", e.target.value)}
-              />
-            </Campo>
-          </Secao>
-
-          <Secao
-            titulo="Operacional"
-            icon={<BadgeCheck className="h-4 w-4" />}
-          >
             <Campo label="Situação">
               <Select
                 value={f.ativo === false ? "inativo" : "ativo"}

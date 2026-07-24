@@ -1,4 +1,4 @@
-import type { Batch, Delivery, Driver, Square } from "@/types";
+import type { Batch, Delivery, Driver, Square, Vehicle } from "@/types";
 import raw from "./deliveries.json";
 
 const deliveries = raw as Delivery[];
@@ -38,6 +38,39 @@ for (const d of deliveries) {
   d.praca = toTitle(d.praca);
 }
 
+export const vehicles: Vehicle[] = [
+  {
+    id: "veh-01",
+    placa: "RKM8D42",
+    tipo: "Truck",
+    modelo: "VW Delivery 11.180",
+    ano: "2021",
+    capacidadeKg: 6500,
+    renavam: "01147829365",
+    antt: "58412907",
+    ativo: true,
+  },
+  {
+    id: "veh-02",
+    placa: "PXA4J17",
+    tipo: "Toco",
+    modelo: "Mercedes-Benz Accelo 1016",
+    ano: "2019",
+    capacidadeKg: 4200,
+    renavam: "00982371544",
+    ativo: true,
+  },
+  {
+    id: "veh-03",
+    placa: "QTB7H55",
+    tipo: "VUC",
+    modelo: "Iveco Daily 35-150",
+    ano: "2022",
+    capacidadeKg: 3200,
+    ativo: true,
+  },
+];
+
 export const drivers: Driver[] = [
   {
     id: "drv-01",
@@ -51,13 +84,7 @@ export const drivers: Driver[] = [
     cnhCategoria: "E",
     cnhValidade: "2027-05-30",
     moppValidade: "2026-11-14",
-    veiculoPlaca: "RKM8D42",
-    veiculoTipo: "Truck",
-    veiculoModelo: "VW Delivery 11.180",
-    veiculoAno: "2021",
-    veiculoCapacidadeKg: 6500,
-    veiculoRenavam: "01147829365",
-    veiculoAntt: "58412907",
+    veiculoPadraoId: "veh-01",
     ativo: true,
   },
   {
@@ -70,12 +97,7 @@ export const drivers: Driver[] = [
     cnhNumero: "12855490622",
     cnhCategoria: "D",
     cnhValidade: "2026-08-19",
-    veiculoPlaca: "PXA4J17",
-    veiculoTipo: "Toco",
-    veiculoModelo: "Mercedes-Benz Accelo 1016",
-    veiculoAno: "2019",
-    veiculoCapacidadeKg: 4200,
-    veiculoRenavam: "00982371544",
+    veiculoPadraoId: "veh-02",
     ativo: true,
   },
 ];
@@ -122,6 +144,7 @@ export function buildInitialBatch(): Batch {
     codigo: "LT-2026-07-20-001",
     carga: 28860,
     motoristaId: "drv-01",
+    veiculoId: "veh-01",
     status: "disponivel",
     createdAt: "2026-07-18T09:15:00",
     routeCode: "RT28860",

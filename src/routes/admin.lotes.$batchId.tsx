@@ -4,6 +4,8 @@ import {
   CalendarDays,
   Check,
   Copy,
+  Eye,
+  EyeOff,
   ExternalLink,
   FileClock,
   MapPin,
@@ -37,9 +39,11 @@ import {
 import {
   fmtCurrency,
   fmtDate,
+  fmtDateTime,
   fmtInt,
   fmtWeight,
 } from "@/lib/format";
+import { vehicleLabel } from "@/types";
 import { cn } from "@/lib/utils";
 import {
   batchTotals,
@@ -58,6 +62,7 @@ function BatchDetailsPage() {
   const navigate = useNavigate();
   const batch = useStore((s) => s.batches.find((b) => b.id === batchId));
   const drivers = useStore((s) => s.drivers);
+  const vehicles = useStore((s) => s.vehicles);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -74,6 +79,8 @@ function BatchDetailsPage() {
 
   const t = batchTotals(batch);
   const dr = drivers.find((d) => d.id === batch.motoristaId);
+  const veiculo = vehicles.find((v) => v.id === batch.veiculoId);
+  const acesso = batch.acesso;
   const dias = Array.from(new Set(batch.squares.map((s) => s.data))).sort();
   const origin =
     typeof window !== "undefined" ? window.location.origin : "";
@@ -190,16 +197,15 @@ function BatchDetailsPage() {
             <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
               {dr?.telefone && <span>{dr.telefone}</span>}
               {dr?.cnhCategoria && <span>CNH {dr.cnhCategoria}</span>}
-              {(dr?.veiculoTipo || dr?.veiculoPlaca) && (
-                <span>
-                  {[dr.veiculoTipo, dr.veiculoModelo, dr.veiculoPlaca]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
+              {dr && (
+                <Link
+                  to="/admin/motoristas/$driverId"
+                  params={{ driverId: dr.id }}
+                  className="font-medium text-primary hover:underline"
+                >
+                  Ver histórico
+                </Link>
               )}
-              {dr?.veiculoCapacidadeKg ? (
-                <span>Capacidade {fmtWeight(dr.veiculoCapacidadeKg)}</span>
-              ) : null}
             </div>
           </div>
           {!locked && drivers.length > 0 && (
@@ -226,12 +232,55 @@ function BatchDetailsPage() {
           )}
         </div>
 
+        {!locked && vehicles.length > 0 && (
+          <div className="mt-3 border-t pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Veículo da carga
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <div className="min-w-[240px]">
+                <Select
+                  value={batch.veiculoId ?? ""}
+                  onValueChange={(v) => {
+                    store.assignVehicle(batch.id, v);
+                    toast.success("Veículo atualizado");
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar veículo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vehicles
+                      .filter((v) => v.ativo !== false)
+                      .map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {vehicleLabel(v)}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {!batch.veiculoId && (
+                <p className="text-xs text-muted-foreground">
+                  Sem veículo definido — a capacidade não é conferida.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {locked && veiculo && (
+          <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
+            Veículo: <strong>{vehicleLabel(veiculo)}</strong>
+          </p>
+        )}
+
         {/* Peso da carga contra a capacidade do veículo: erro caro de pegar
             só na hora do carregamento. */}
-        {dr?.veiculoCapacidadeKg ? (
+        {veiculo?.capacidadeKg ? (
           (() => {
-            const excede = t.peso > dr.veiculoCapacidadeKg;
-            const uso = Math.round((t.peso / dr.veiculoCapacidadeKg) * 100);
+            const excede = t.peso > veiculo.capacidadeKg!;
+            const uso = Math.round((t.peso / veiculo.capacidadeKg!) * 100);
             return (
               <div
                 className={cn(
@@ -244,12 +293,62 @@ function BatchDetailsPage() {
                 {excede && <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />}
                 <span>
                   Carga de {fmtWeight(t.peso)} ocupa <strong>{uso}%</strong> da
-                  capacidade do veículo ({fmtWeight(dr.veiculoCapacidadeKg)})
+                  capacidade do veículo ({fmtWeight(veiculo.capacidadeKg!)})
                   {excede && " — acima do limite."}
                 </span>
               </div>
             );
           })()
+        ) : null}
+      </section>
+
+      {/* Status de leitura: o admin envia o link e hoje ficava no escuro. */}
+      <section
+        className={cn(
+          "flex flex-wrap items-center gap-3 rounded-2xl border p-4 shadow-sm",
+          acesso?.primeiroAcessoEm
+            ? "border-primary/20 bg-primary/5"
+            : "bg-card",
+        )}
+      >
+        <span
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+            acesso?.primeiroAcessoEm
+              ? "bg-primary/15 text-primary"
+              : "bg-muted text-muted-foreground",
+          )}
+        >
+          {acesso?.primeiroAcessoEm ? (
+            <Eye className="h-4 w-4" />
+          ) : (
+            <EyeOff className="h-4 w-4" />
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">
+            {acesso?.primeiroAcessoEm
+              ? "Motorista já abriu a rota"
+              : batch.accessGeneratedAt
+                ? "Motorista ainda não abriu a rota"
+                : "Acesso ainda não gerado"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {acesso?.primeiroAcessoEm
+              ? `Primeira abertura em ${fmtDateTime(acesso.primeiroAcessoEm)}` +
+                (acesso.ultimoAcessoEm &&
+                acesso.ultimoAcessoEm !== acesso.primeiroAcessoEm
+                  ? ` · última em ${fmtDateTime(acesso.ultimoAcessoEm)}`
+                  : "")
+              : batch.accessGeneratedAt
+                ? `Acesso gerado em ${fmtDateTime(batch.accessGeneratedAt)} — reenvie se necessário.`
+                : "Gere o acesso e envie ao motorista."}
+          </p>
+        </div>
+        {acesso?.aberturas ? (
+          <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+            {acesso.aberturas} abertura(s)
+          </span>
         ) : null}
       </section>
 

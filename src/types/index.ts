@@ -97,18 +97,34 @@ export interface Driver {
   cnhValidade?: string;
   moppValidade?: string;
 
-  // Veículo
-  veiculoPlaca?: string;
-  veiculoTipo?: VeiculoTipo;
-  veiculoModelo?: string;
-  veiculoAno?: string;
-  veiculoCapacidadeKg?: number;
-  veiculoRenavam?: string;
-  veiculoAntt?: string;
+  /**
+   * Veículo habitual. O veículo que vale para a carga é o do lote — o mesmo
+   * motorista troca de caminhão, e é o veículo que define a capacidade.
+   * Este campo serve só para pré-selecionar na atribuição.
+   */
+  veiculoPadraoId?: string;
 
   // Operacional
   ativo?: boolean;
   observacoes?: string;
+}
+
+export interface Vehicle {
+  id: string;
+  placa: string;
+  tipo?: VeiculoTipo;
+  modelo?: string;
+  ano?: string;
+  capacidadeKg?: number;
+  renavam?: string;
+  antt?: string;
+  ativo?: boolean;
+  observacoes?: string;
+}
+
+/** Rótulo curto para listas e selects: "Truck · VW Delivery · RKM8D42". */
+export function vehicleLabel(v: Vehicle): string {
+  return [v.tipo, v.modelo, v.placa].filter(Boolean).join(" · ");
 }
 
 /** dias restantes até a data (negativo = vencido). null se não informada. */
@@ -146,11 +162,20 @@ export function isReorder(c: RouteChange): boolean {
   return c.ordemOriginal !== c.ordemNova;
 }
 
+/** Registro de que o motorista abriu o link da rota. */
+export interface AccessLog {
+  primeiroAcessoEm?: string;
+  ultimoAcessoEm?: string;
+  aberturas: number;
+}
+
 export interface Batch {
   id: string;
   codigo: string;
   carga: number;
   motoristaId: string;
+  veiculoId?: string;
+  acesso?: AccessLog;
   status: BatchStatus;
   createdAt: string;
   confirmedAt?: string;

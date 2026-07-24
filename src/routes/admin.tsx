@@ -6,10 +6,12 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import {
+  BarChart3,
   LogOut,
   LayoutDashboard,
   Package,
   RotateCcw,
+  Truck,
   Upload,
   Users,
   ArrowLeft,
@@ -30,7 +32,9 @@ const NAV = [
   { to: "/admin", label: "Visão geral", icon: LayoutDashboard, active: true },
   { to: "/admin/import", label: "Importar rota", icon: Upload, active: true },
   { to: "/admin/lotes", label: "Lotes", icon: Package, active: true },
+  { to: "/admin/analise", label: "Análise", icon: BarChart3, active: true },
   { to: "/admin/motoristas", label: "Motoristas", icon: Users, active: true },
+  { to: "/admin/veiculos", label: "Veículos", icon: Truck, active: true },
 ] as const;
 
 function AdminLayout() {

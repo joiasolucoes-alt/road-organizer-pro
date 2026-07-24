@@ -1,5 +1,10 @@
 import { useSyncExternalStore } from "react";
-import { buildInitialBatch, buildBatchFromDeliveries, drivers as seedDrivers } from "@/mocks/data";
+import {
+  buildInitialBatch,
+  buildBatchFromDeliveries,
+  drivers as seedDrivers,
+  vehicles as seedVehicles,
+} from "@/mocks/data";
 import { supabase, hasRemote } from "@/services/supabase";
 import type {
   AdminSession,
@@ -10,6 +15,7 @@ import type {
   Driver,
   DriverSession,
   NotificationKind,
+  Vehicle,
 } from "@/types";
 
 const STORAGE_KEY = "master-rotas:v1";
@@ -19,6 +25,7 @@ const DRIVER_SESSION_KEY = "master-rotas:driver";
 interface State {
   batches: Batch[];
   drivers: Driver[];
+  vehicles: Vehicle[];
   notifications: AppNotification[];
 }
 
@@ -26,6 +33,7 @@ function initialState(): State {
   return {
     batches: [buildInitialBatch()],
     drivers: [...seedDrivers],
+    vehicles: [...seedVehicles],
     notifications: [],
   };
 }
@@ -40,6 +48,7 @@ function load(): State {
       return {
         batches: parsed.batches ?? initial.batches,
         drivers: parsed.drivers ?? initial.drivers,
+        vehicles: parsed.vehicles ?? initial.vehicles,
         notifications: parsed.notifications ?? [],
       };
     }
@@ -50,7 +59,12 @@ function load(): State {
   return initial;
 }
 
-let state: State = { batches: [], drivers: [], notifications: [] };
+let state: State = {
+  batches: [],
+  drivers: [],
+  vehicles: [],
+  notifications: [],
+};
 let hydrated = false;
 const listeners = new Set<() => void>();
 
@@ -90,7 +104,12 @@ function getSnapshot() {
   return state;
 }
 
-const serverSnapshot: State = { batches: [], drivers: [], notifications: [] };
+const serverSnapshot: State = {
+  batches: [],
+  drivers: [],
+  vehicles: [],
+  notifications: [],
+};
 function getServerSnapshot() {
   return serverSnapshot;
 }
@@ -130,9 +149,10 @@ function batchRow(b: Batch) {
 
 async function pullRemote(): Promise<State | null> {
   if (!supabase) return null;
-  const [b, d, n] = await Promise.all([
+  const [b, d, v, n] = await Promise.all([
     supabase.from("batches").select("payload, updated_at").order("updated_at", { ascending: false }),
     supabase.from("drivers").select("id, nome, telefone, payload").order("created_at"),
+    supabase.from("vehicles").select("id, placa, payload").order("created_at"),
     supabase
       .from("notifications")
       .select("id, kind, batch_id, title, description, read, created_at")
@@ -141,6 +161,7 @@ async function pullRemote(): Promise<State | null> {
   ]);
   if (b.error) throw b.error;
   if (d.error) throw d.error;
+  if (v.error) throw v.error;
   if (n.error) throw n.error;
 
   return {
@@ -153,6 +174,11 @@ async function pullRemote(): Promise<State | null> {
       nome: r.nome as string,
       telefone: (r.telefone as string) ?? "",
     })) as Driver[],
+    vehicles: (v.data ?? []).map((r) => ({
+      ...((r.payload ?? {}) as Partial<Vehicle>),
+      id: r.id as string,
+      placa: r.placa as string,
+    })) as Vehicle[],
     notifications: (n.data ?? []).map((r) => ({
       id: r.id as string,
       kind: r.kind as NotificationKind,
@@ -175,6 +201,13 @@ async function pushRemote(s: State) {
         nome: d.nome,
         telefone: d.telefone,
         payload: d as unknown as Record<string, unknown>,
+      })),
+    ),
+    supabase.from("vehicles").upsert(
+      s.vehicles.map((v) => ({
+        id: v.id,
+        placa: v.placa,
+        payload: v as unknown as Record<string, unknown>,
       })),
     ),
   ];
@@ -262,6 +295,7 @@ function watchRemote() {
   supabase
     .channel("master-rotas")
     .on("postgres_changes", { event: "*", schema: "public", table: "batches" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "vehicles" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, onChange)
     .subscribe();
 }
@@ -278,6 +312,7 @@ function update(mut: (s: State) => void) {
       changes: [...b.changes],
     })),
     drivers: [...state.drivers],
+    vehicles: [...state.vehicles],
     notifications: [...state.notifications],
   };
   persist();
@@ -356,6 +391,8 @@ export const store = {
       await Promise.all([
         supabase.from("batches").delete().neq("id", ""),
         supabase.from("notifications").delete().neq("id", ""),
+        supabase.from("vehicles").delete().neq("id", ""),
+        supabase.from("drivers").delete().neq("id", ""),
       ]).catch((e) => console.error("[master-rotas] falha ao resetar:", e));
     }
     update((s) => {
@@ -426,12 +463,84 @@ export const store = {
       pushNotification(s, "lote_excluido", `Lote ${b.codigo} excluído`);
     });
   },
+  getVehicles(): Vehicle[] {
+    ensureHydrated();
+    return state.vehicles;
+  },
   assignDriver(batchId: string, driverId: string) {
     update((s) => {
       const b = s.batches.find((x) => x.id === batchId);
       if (!b) return;
       if (b.status === "confirmado" || b.status === "arquivo_gerado") return;
       b.motoristaId = driverId;
+      // Pré-seleciona o veículo habitual do motorista, se o lote ainda não
+      // tem um. Continua editável — trocar de caminhão é o caso comum.
+      if (!b.veiculoId) {
+        const d = s.drivers.find((x) => x.id === driverId);
+        if (d?.veiculoPadraoId) b.veiculoId = d.veiculoPadraoId;
+      }
+    });
+  },
+  assignVehicle(batchId: string, vehicleId: string) {
+    update((s) => {
+      const b = s.batches.find((x) => x.id === batchId);
+      if (!b) return;
+      if (b.status === "confirmado" || b.status === "arquivo_gerado") return;
+      b.veiculoId = vehicleId;
+    });
+  },
+  addVehicle(data: Omit<Vehicle, "id">) {
+    update((s) => {
+      s.vehicles.push({
+        ...data,
+        id: `veh-${Date.now()}`,
+        placa: data.placa.trim().toUpperCase(),
+        ativo: data.ativo ?? true,
+      });
+    });
+  },
+  updateVehicle(id: string, patch: Partial<Omit<Vehicle, "id">>) {
+    update((s) => {
+      const v = s.vehicles.find((x) => x.id === id);
+      if (!v) return;
+      Object.assign(v, patch);
+      if (patch.placa) v.placa = patch.placa.trim().toUpperCase();
+    });
+  },
+  deleteVehicle(id: string): boolean {
+    let ok = false;
+    update((s) => {
+      if (s.batches.some((b) => b.veiculoId === id)) return;
+      s.vehicles = s.vehicles.filter((v) => v.id !== id);
+      s.drivers.forEach((d) => {
+        if (d.veiculoPadraoId === id) d.veiculoPadraoId = undefined;
+      });
+      void supabase
+        ?.from("vehicles")
+        .delete()
+        .eq("id", id)
+        .then(({ error }) => {
+          if (error) console.error("[master-rotas] falha ao excluir:", error);
+        });
+      ok = true;
+    });
+    return ok;
+  },
+  /**
+   * Marca que o motorista abriu o link. Chamado a cada entrada autorizada;
+   * o de-duplicação por sessão fica na tela, não aqui.
+   */
+  registerAccess(batchId: string) {
+    update((s) => {
+      const b = s.batches.find((x) => x.id === batchId);
+      if (!b) return;
+      const agora = new Date().toISOString();
+      const atual = b.acesso ?? { aberturas: 0 };
+      b.acesso = {
+        primeiroAcessoEm: atual.primeiroAcessoEm ?? agora,
+        ultimoAcessoEm: agora,
+        aberturas: atual.aberturas + 1,
+      };
     });
   },
   reorderSquares(batchId: string, newOrder: string[]) {

@@ -55,6 +55,16 @@ function DriverLayout() {
     void navigate({ to: "/rota" });
   }, [routeCode, navigate, codeFromLink, loading]);
 
+  // Registra a abertura uma vez por sessão do navegador: o admin precisa saber
+  // se o link chegou, mas navegar entre telas não é uma nova abertura.
+  useEffect(() => {
+    if (!authorized || !batch) return;
+    const chave = `master-rotas:aberto:${batch.routeCode}`;
+    if (sessionStorage.getItem(chave)) return;
+    sessionStorage.setItem(chave, "1");
+    store.registerAccess(batch.id);
+  }, [authorized, batch]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background p-6">
