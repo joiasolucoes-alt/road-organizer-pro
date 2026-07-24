@@ -84,8 +84,10 @@ function BatchDetailsPage() {
   const dias = Array.from(new Set(batch.squares.map((s) => s.data))).sort();
   const origin =
     typeof window !== "undefined" ? window.location.origin : "";
-  // O código vai embutido: quem abre o link (ou lê o QR) entra direto.
-  const link = `${origin}/rota/${batch.routeCode}?c=${batch.accessCode}`;
+  // O link leva à tela de acesso com o código da rota já preenchido; o
+  // código de acesso é digitado pelo motorista (segundo fator, caso o link
+  // seja encaminhado ou vaze do histórico).
+  const link = `${origin}/rota/${batch.routeCode}`;
   const locked =
     batch.status === "confirmado" || batch.status === "arquivo_gerado";
 
@@ -94,18 +96,17 @@ function BatchDetailsPage() {
       ? `${fmtDate(dias[0])} a ${fmtDate(dias[dias.length - 1])}`
       : "-";
 
-  // Mensagem pronta para o motorista: link com acesso automático e, logo
-  // abaixo, os códigos para quem preferir digitar.
+  // Mensagem pronta para o motorista: link abre a tela de acesso com a rota
+  // já preenchida; o código de acesso é enviado por outro canal.
   const mensagem = [
     `Olá, ${dr?.nome ?? "motorista"}! Segue o acesso à sua rota na Master Distribuidora.`,
     ``,
     `Carga ${batch.carga} · ${t.entregas} entregas · ${t.pracas} praças`,
     `Período: ${periodo}`,
     ``,
-    `Abra o link abaixo — o acesso é automático:`,
+    `Abra o link abaixo e informe o código de acesso:`,
     link,
     ``,
-    `Se precisar entrar manualmente:`,
     `Código da rota: ${batch.routeCode}`,
     `Código de acesso: ${batch.accessCode}`,
   ].join("\n");
