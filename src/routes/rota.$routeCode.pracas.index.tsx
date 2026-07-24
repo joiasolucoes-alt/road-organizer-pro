@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { SortableList } from "@/components/SortableList";
 import { SquareCard } from "@/components/SquareCard";
+import { SquaresOverviewMapLazy } from "@/components/SquareRouteMapLazy";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { fmtCurrency, fmtDate, fmtInt, fmtWeight } from "@/lib/format";
@@ -81,6 +82,7 @@ function PracasPage() {
         </aside>
 
         <section className="order-1 min-w-0 space-y-3 xl:order-2">
+          <SquaresOverviewMapLazy batch={batch} />
           {changed && !locked && (
             <div className="rounded-lg border-l-4 border-[color:var(--brand-warn)] bg-[color:var(--brand-warn-bg)] px-3 py-2 text-xs font-medium text-[color:var(--brand-warn-fg)]">
               Ordem alterada em relação ao Fusion - clique em confirmar quando

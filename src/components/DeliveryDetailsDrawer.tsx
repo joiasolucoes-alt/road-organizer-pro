@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -9,6 +9,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { fmtCurrency, fmtDateTime, fmtInt, fmtWeight } from "@/lib/format";
+import { googleMapsNavUrl, wazeNavUrl } from "@/lib/nav";
 import type { Delivery } from "@/types";
 
 interface Props {
@@ -74,14 +75,33 @@ export function DeliveryDetailsDrawer({ delivery, onClose }: Props) {
             </div>
 
             <DrawerFooter>
-              <Button asChild className="w-full" variant="default">
+              <div className="flex gap-2">
+                <Button asChild className="flex-1" variant="default">
+                  <a
+                    href={googleMapsNavUrl(delivery.latitude, delivery.longitude)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Navigation className="mr-2 h-4 w-4" /> Google Maps
+                  </a>
+                </Button>
+                <Button asChild className="flex-1" variant="secondary">
+                  <a
+                    href={wazeNavUrl(delivery.latitude, delivery.longitude)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Navigation className="mr-2 h-4 w-4" /> Waze
+                  </a>
+                </Button>
+              </div>
+              <Button asChild variant="outline" className="w-full">
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${delivery.latitude},${delivery.longitude}`}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <ExternalLink className="mr-2 h-4 w-4" /> Abrir localização no
-                  mapa
+                  <ExternalLink className="mr-2 h-4 w-4" /> Ver no mapa
                 </a>
               </Button>
               <Button variant="outline" onClick={onClose}>
