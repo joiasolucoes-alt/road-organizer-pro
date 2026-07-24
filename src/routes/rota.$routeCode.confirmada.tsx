@@ -36,7 +36,7 @@ function ConfirmadaPage() {
   const [genStep, setGenStep] = useState(-1);
   const [generating, setGenerating] = useState(false);
 
-  const feitas = Object.keys(batch.execucao?.entregues ?? {}).length;
+  const feitas = Object.keys(batch.execucao?.registros ?? {}).length;
   const rotuloExecucao = batch.execucao?.concluidaEm
     ? "Ver rota concluída"
     : feitas > 0

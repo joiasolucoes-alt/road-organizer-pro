@@ -169,12 +169,36 @@ export interface AccessLog {
   aberturas: number;
 }
 
-/** Comprovação de uma entrega concluída. */
-export interface EntregaConcluida {
-  /** instante da confirmação (ISO) */
+export type RegistroStatus = "entregue" | "nao_entregue";
+
+export type MotivoNaoEntrega =
+  | "Cliente ausente"
+  | "Estabelecimento fechado"
+  | "Recusou a mercadoria"
+  | "Endereço não localizado"
+  | "Avaria na mercadoria"
+  | "Sem condições de acesso"
+  | "Outro";
+
+export const MOTIVOS_NAO_ENTREGA: MotivoNaoEntrega[] = [
+  "Cliente ausente",
+  "Estabelecimento fechado",
+  "Recusou a mercadoria",
+  "Endereço não localizado",
+  "Avaria na mercadoria",
+  "Sem condições de acesso",
+  "Outro",
+];
+
+/** Resolução de uma entrega durante a execução — entregue ou não. */
+export interface RegistroEntrega {
+  /** instante do registro (ISO) */
   em: string;
-  /** quem recebeu a mercadoria */
+  status: RegistroStatus;
+  /** quem recebeu (entregue) */
   recebedor?: string;
+  /** motivo da falha (nao_entregue) */
+  motivo?: MotivoNaoEntrega;
   observacao?: string;
   /**
    * Foto do comprovante, já reduzida no cliente. Guardar imagem dentro do
@@ -190,19 +214,20 @@ export interface EntregaConcluida {
 export interface Execucao {
   iniciadaEm?: string;
   concluidaEm?: string;
-  /** deliveryId -> comprovação */
-  entregues: Record<string, EntregaConcluida>;
+  /** deliveryId -> resolução */
+  registros: Record<string, RegistroEntrega>;
 }
 
 /**
- * Normaliza registros antigos, em que `entregues` guardava só o timestamp
- * como string.
+ * Normaliza registros antigos, em que o valor era só o timestamp (string) ou
+ * um objeto sem `status`.
  */
-export function entregaInfo(
-  valor: EntregaConcluida | string | undefined,
-): EntregaConcluida | undefined {
+export function registroInfo(
+  valor: RegistroEntrega | string | undefined,
+): RegistroEntrega | undefined {
   if (!valor) return undefined;
-  return typeof valor === "string" ? { em: valor } : valor;
+  if (typeof valor === "string") return { em: valor, status: "entregue" };
+  return { ...valor, status: valor.status ?? "entregue" };
 }
 
 export interface Batch {
@@ -229,6 +254,7 @@ export type NotificationKind =
   | "lote_criado"
   | "acesso_gerado"
   | "rota_confirmada"
+  | "rota_concluida"
   | "arquivo_gerado"
   | "lote_excluido";
 

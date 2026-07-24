@@ -14,8 +14,10 @@ import {
   RefreshCw,
   Trash2,
   Truck,
+  XCircle,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { SquaresOverviewMapLazy } from "@/components/SquareRouteMapLazy";
 import { useState } from "react";
 import { toast } from "sonner";
 import { StatCard } from "@/components/StatCard";
@@ -81,7 +83,12 @@ function BatchDetailsPage() {
   const dr = drivers.find((d) => d.id === batch.motoristaId);
   const veiculo = vehicles.find((v) => v.id === batch.veiculoId);
   const acesso = batch.acesso;
-  const entreguesCount = Object.keys(batch.execucao?.entregues ?? {}).length;
+  const registros = batch.execucao?.registros ?? {};
+  const registrosList = Object.entries(registros);
+  const entreguesCount = registrosList.length;
+  const falhasCount = registrosList.filter(
+    ([, r]) => r.status === "nao_entregue",
+  ).length;
   const dias = Array.from(new Set(batch.squares.map((s) => s.data))).sort();
   const origin =
     typeof window !== "undefined" ? window.location.origin : "";
@@ -380,6 +387,100 @@ function BatchDetailsPage() {
               }}
             />
           </div>
+          {falhasCount > 0 && (
+            <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-destructive">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {falhasCount} entrega(s) não realizada(s)
+            </p>
+          )}
+        </section>
+      )}
+
+      {/* Comprovantes: o que o motorista registrou em campo. */}
+      {registrosList.length > 0 && (
+        <section className="rounded-2xl border bg-card shadow-sm">
+          <header className="border-b p-4">
+            <h2 className="text-base font-semibold">Comprovantes de entrega</h2>
+            <p className="text-xs text-muted-foreground">
+              Registrado pelo motorista durante a rota.
+            </p>
+          </header>
+          <ul className="divide-y">
+            {registrosList
+              .map(([id, r]) => ({
+                r,
+                d: batch.deliveries.find((x) => x.id === id),
+              }))
+              .filter((x) => x.d)
+              .sort((a, b) => a.r.em.localeCompare(b.r.em))
+              .map(({ r, d }) => {
+                const falhou = r.status === "nao_entregue";
+                return (
+                  <li key={d!.id} className="flex items-start gap-3 p-4">
+                    {r.foto ? (
+                      <a href={r.foto} target="_blank" rel="noreferrer">
+                        <img
+                          src={r.foto}
+                          alt="Comprovante"
+                          className="h-14 w-14 shrink-0 rounded-md border object-cover"
+                        />
+                      </a>
+                    ) : (
+                      <span
+                        className={cn(
+                          "flex h-14 w-14 shrink-0 items-center justify-center rounded-md",
+                          falhou
+                            ? "bg-destructive/10 text-destructive"
+                            : "bg-primary/10 text-primary",
+                        )}
+                      >
+                        {falhou ? (
+                          <XCircle className="h-6 w-6" />
+                        ) : (
+                          <Check className="h-6 w-6" />
+                        )}
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-semibold">
+                          {d!.cliente}
+                        </p>
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                            falhou
+                              ? "bg-destructive/10 text-destructive"
+                              : "bg-primary/10 text-primary",
+                          )}
+                        >
+                          {falhou ? "Não entregue" : "Entregue"}
+                        </span>
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {d!.bairro} · {fmtDateTime(r.em)}
+                      </p>
+                      {falhou && r.motivo && (
+                        <p className="mt-0.5 text-xs font-medium text-destructive">
+                          {r.motivo}
+                        </p>
+                      )}
+                      {r.recebedor && (
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Recebido por{" "}
+                          <span className="text-foreground">{r.recebedor}</span>
+                        </p>
+                      )}
+                      {r.observacao && (
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {r.observacao}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+          </ul>
         </section>
       )}
 
@@ -393,6 +494,18 @@ function BatchDetailsPage() {
           hint={`${fmtCurrency(t.valor)} em valor`}
         />
       </div>
+
+      <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+        <header className="border-b p-4">
+          <h2 className="text-base font-semibold">Mapa da rota</h2>
+          <p className="text-xs text-muted-foreground">
+            Sequência das praças na ordem atual.
+          </p>
+        </header>
+        <div className="p-3">
+          <SquaresOverviewMapLazy batch={batch} />
+        </div>
+      </section>
 
       <section className="rounded-2xl border bg-card shadow-sm">
         <header className="border-b p-4">

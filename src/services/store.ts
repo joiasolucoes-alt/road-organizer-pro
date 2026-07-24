@@ -13,8 +13,8 @@ import type {
   Delivery,
   DeliveryIssueReason,
   Driver,
-  EntregaConcluida,
   Execucao,
+  RegistroEntrega,
   DriverSession,
   NotificationKind,
   Vehicle,
@@ -535,47 +535,60 @@ export const store = {
       if (!b) return;
       if (b.execucao?.iniciadaEm) return;
       b.execucao = {
-        ...(b.execucao ?? { entregues: {} }),
+        ...(b.execucao ?? { registros: {} }),
         iniciadaEm: new Date().toISOString(),
       };
     });
   },
   /**
-   * Confirma (ou reabre) uma entrega. `prova` carrega recebedor, observação e
-   * foto do comprovante — todos opcionais.
+   * Registra a resolução de uma entrega (entregue ou não-entregue) ou a reabre
+   * quando `registro` é null. `registro` carrega status, recebedor/motivo,
+   * observação e foto.
    */
-  setDeliveryDone(
+  resolverEntrega(
     batchId: string,
     deliveryId: string,
-    done: boolean,
-    prova?: Omit<EntregaConcluida, "em">,
+    registro: Omit<RegistroEntrega, "em"> | null,
   ) {
     update((s) => {
       const b = s.batches.find((x) => x.id === batchId);
       if (!b) return;
-      const exec: Execucao = b.execucao ?? { entregues: {} };
-      const entregues = { ...exec.entregues };
-      if (done) {
-        entregues[deliveryId] = {
-          em: new Date().toISOString(),
-          ...(prova ?? {}),
-        };
+      const exec: Execucao = b.execucao ?? { registros: {} };
+      const registros = { ...exec.registros };
+      if (registro) {
+        registros[deliveryId] = { em: new Date().toISOString(), ...registro };
       } else {
-        delete entregues[deliveryId];
+        delete registros[deliveryId];
       }
 
       const total = b.deliveries.length;
-      const feitas = Object.keys(entregues).length;
+      const resolvidas = Object.keys(registros).length;
+      const jaEstavaConcluida = Boolean(exec.concluidaEm);
+      const concluidaEm =
+        resolvidas >= total && total > 0
+          ? (exec.concluidaEm ?? new Date().toISOString())
+          : undefined;
+
       b.execucao = {
         ...exec,
         iniciadaEm: exec.iniciadaEm ?? new Date().toISOString(),
-        entregues,
-        // Fecha sozinho na última entrega; reabre se o motorista desmarcar.
-        concluidaEm:
-          feitas >= total && total > 0
-            ? (exec.concluidaEm ?? new Date().toISOString())
-            : undefined,
+        registros,
+        concluidaEm,
       };
+
+      // Notifica o admin só na transição para concluída.
+      if (concluidaEm && !jaEstavaConcluida) {
+        const falhas = Object.values(registros).filter(
+          (r) => r.status === "nao_entregue",
+        ).length;
+        pushNotification(s, "rota_concluida", `Rota ${b.routeCode} concluída`, {
+          batchId: b.id,
+          description:
+            falhas > 0
+              ? `${total - falhas} entregues · ${falhas} não entregue(s)`
+              : `${total} entregas concluídas`,
+        });
+      }
     });
   },
   /**

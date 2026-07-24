@@ -34,7 +34,7 @@ function DriverSummary() {
   );
   const locked = batch.status === "confirmado" || batch.status === "arquivo_gerado";
 
-  const feitas = Object.keys(batch.execucao?.entregues ?? {}).length;
+  const feitas = Object.keys(batch.execucao?.registros ?? {}).length;
   const rotuloExecucao = batch.execucao?.concluidaEm
     ? "Ver rota concluída"
     : feitas > 0

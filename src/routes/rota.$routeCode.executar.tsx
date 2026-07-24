@@ -11,6 +11,7 @@ import {
   Package,
   RouteIcon,
   Undo2,
+  XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -27,7 +28,7 @@ import {
 } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { squareTotals, store, useStore } from "@/services/store";
-import { entregaInfo, type Delivery } from "@/types";
+import { registroInfo, type Delivery, type RegistroEntrega } from "@/types";
 
 export const Route = createFileRoute("/rota/$routeCode/executar")({
   component: ExecutarPage,
@@ -39,8 +40,8 @@ function ExecutarPage() {
     s.batches.find((b) => b.routeCode === routeCode),
   )!;
 
-  const entregues = batch.execucao?.entregues ?? {};
-  const feito = (id: string) => Boolean(entregues[id]);
+  const registros = batch.execucao?.registros ?? {};
+  const feito = (id: string) => Boolean(registros[id]);
 
   // Praça atual = a primeira que ainda tem entrega pendente.
   const primeiraPendente = Math.max(
@@ -62,7 +63,12 @@ function ExecutarPage() {
 
   const sq = batch.squares[indice];
   const totalEntregas = batch.deliveries.length;
-  const totalFeitas = Object.keys(entregues).length;
+  const resolvidos = Object.values(registros);
+  const totalFeitas = resolvidos.length;
+  const totalFalhas = resolvidos.filter(
+    (r) => r.status === "nao_entregue",
+  ).length;
+  const totalEntregues = totalFeitas - totalFalhas;
   const rotaConcluida = totalFeitas >= totalEntregas && totalEntregas > 0;
 
   if (!sq) return null;
@@ -135,11 +141,42 @@ function ExecutarPage() {
         </div>
       </header>
 
+      {/* Resumo de fechamento: aparece quando toda a rota foi resolvida. */}
       {rotaConcluida && (
-        <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary">
-          <Flag className="h-4 w-4 shrink-0" />
-          Todas as entregas foram concluídas.
-        </div>
+        <section className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-4 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Flag className="h-5 w-5 shrink-0 text-primary" />
+            <h2 className="text-base font-bold">Rota finalizada</h2>
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+            <FechamentoStat label="Entregues" valor={totalEntregues} tone="ok" />
+            <FechamentoStat
+              label="Não entregues"
+              valor={totalFalhas}
+              tone={totalFalhas > 0 ? "warn" : "muted"}
+            />
+            <FechamentoStat label="Total" valor={totalEntregas} tone="muted" />
+          </div>
+          {batch.execucao?.iniciadaEm && batch.execucao.concluidaEm && (
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              {new Date(batch.execucao.iniciadaEm).toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}{" "}
+              →{" "}
+              {new Date(batch.execucao.concluidaEm).toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}{" "}
+              · duração de {duracao(batch.execucao.iniciadaEm, batch.execucao.concluidaEm)}
+            </p>
+          )}
+          <Button asChild variant="outline" className="mt-3 w-full bg-card">
+            <Link to="/rota/$routeCode/confirmada" params={{ routeCode }}>
+              Ver comprovante da rota
+            </Link>
+          </Button>
+        </section>
       )}
 
       <SquareRouteMapLazy deliveries={itens} />
@@ -224,10 +261,10 @@ function ExecutarPage() {
               key={d.id}
               delivery={d}
               posicao={i + 1}
-              info={entregaInfo(entregues[d.id])}
-              onConcluir={() => setConfirmando(d)}
+              info={registroInfo(registros[d.id])}
+              onRegistrar={() => setConfirmando(d)}
               onReabrir={() => {
-                store.setDeliveryDone(batch.id, d.id, false);
+                store.resolverEntrega(batch.id, d.id, null);
                 toast.success("Entrega reaberta");
               }}
               onOpen={() => setDetalhe(d)}
@@ -244,11 +281,15 @@ function ExecutarPage() {
       <DeliveryConfirmDrawer
         delivery={confirmando}
         onClose={() => setConfirmando(null)}
-        onConfirm={(prova) => {
+        onConfirm={(registro) => {
           if (!confirmando) return;
-          store.setDeliveryDone(batch.id, confirmando.id, true, prova);
+          store.resolverEntrega(batch.id, confirmando.id, registro);
           setConfirmando(null);
-          toast.success("Entrega confirmada");
+          toast.success(
+            registro.status === "entregue"
+              ? "Entrega confirmada"
+              : "Não entrega registrada",
+          );
         }}
       />
 
@@ -290,35 +331,43 @@ function ExecucaoRow({
   delivery: d,
   posicao,
   info,
-  onConcluir,
+  onRegistrar,
   onReabrir,
   onOpen,
 }: {
   delivery: Delivery;
   posicao: number;
-  info?: { em: string; recebedor?: string; observacao?: string; foto?: string };
-  onConcluir: () => void;
+  info?: RegistroEntrega;
+  onRegistrar: () => void;
   onReabrir: () => void;
   onOpen: () => void;
 }) {
-  const concluida = !!info;
+  const resolvida = !!info;
+  const falhou = info?.status === "nao_entregue";
   return (
     <li
       className={cn(
         "rounded-xl border bg-card p-3 shadow-sm transition-colors",
-        concluida && "border-primary/30 bg-primary/5",
+        info?.status === "entregue" && "border-primary/30 bg-primary/5",
+        falhou && "border-destructive/30 bg-destructive/5",
       )}
     >
       <div className="flex items-center gap-2.5">
         <span
           className={cn(
             "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-sm font-bold",
-            concluida
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-foreground",
+            !resolvida && "bg-muted text-foreground",
+            info?.status === "entregue" && "bg-primary text-primary-foreground",
+            falhou && "bg-destructive text-white",
           )}
         >
-          {concluida ? <CheckCircle2 className="h-5 w-5" /> : posicao}
+          {!resolvida ? (
+            posicao
+          ) : falhou ? (
+            <XCircle className="h-5 w-5" />
+          ) : (
+            <CheckCircle2 className="h-5 w-5" />
+          )}
         </span>
 
         <button
@@ -329,7 +378,8 @@ function ExecucaoRow({
           <p
             className={cn(
               "min-w-0 truncate text-sm font-semibold",
-              concluida && "text-muted-foreground line-through",
+              info?.status === "entregue" &&
+                "text-muted-foreground line-through",
             )}
           >
             {d.cliente}
@@ -348,7 +398,14 @@ function ExecucaoRow({
               <Package className="h-2.5 w-2.5" /> {d.quantidadeItens}
             </span>
             {info && (
-              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-primary">
+              <span
+                className={cn(
+                  "rounded px-1.5 py-0.5",
+                  falhou
+                    ? "bg-destructive/10 text-destructive"
+                    : "bg-primary/10 text-primary",
+                )}
+              >
                 {new Date(info.em).toLocaleTimeString("pt-BR", {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -359,7 +416,7 @@ function ExecucaoRow({
         </button>
 
         <div className="flex shrink-0 items-center gap-1">
-          {concluida ? (
+          {resolvida ? (
             <Button
               size="icon"
               variant="ghost"
@@ -384,8 +441,8 @@ function ExecucaoRow({
               <Button
                 size="icon"
                 className="h-9 w-9"
-                onClick={onConcluir}
-                aria-label="Confirmar entrega"
+                onClick={onRegistrar}
+                aria-label="Registrar entrega"
               >
                 <CheckCircle2 className="h-4 w-4" />
               </Button>
@@ -394,8 +451,8 @@ function ExecucaoRow({
         </div>
       </div>
 
-      {/* Comprovante registrado: quem recebeu, observação e miniatura. */}
-      {info && (info.recebedor || info.observacao || info.foto) && (
+      {/* Comprovação registrada: status, recebedor/motivo, observação, foto. */}
+      {info && (info.recebedor || info.motivo || info.observacao || info.foto) && (
         <div className="mt-2 flex items-start gap-2 border-t pt-2">
           {info.foto && (
             <img
@@ -405,6 +462,11 @@ function ExecucaoRow({
             />
           )}
           <div className="min-w-0 text-[11px] text-muted-foreground">
+            {falhou && info.motivo && (
+              <p className="truncate font-medium text-destructive">
+                {info.motivo}
+              </p>
+            )}
             {info.recebedor && (
               <p className="truncate">
                 Recebido por{" "}
@@ -419,4 +481,40 @@ function ExecucaoRow({
       )}
     </li>
   );
+}
+
+function FechamentoStat({
+  label,
+  valor,
+  tone,
+}: {
+  label: string;
+  valor: number;
+  tone: "ok" | "warn" | "muted";
+}) {
+  return (
+    <div className="rounded-lg border bg-card p-2">
+      <p
+        className={cn(
+          "text-2xl font-bold tabular-nums",
+          tone === "ok" && "text-primary",
+          tone === "warn" && "text-destructive",
+        )}
+      >
+        {valor}
+      </p>
+      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+/** "1h 47min" a partir de dois instantes ISO. */
+function duracao(inicio: string, fim: string): string {
+  const ms = new Date(fim).getTime() - new Date(inicio).getTime();
+  const min = Math.max(0, Math.round(ms / 60000));
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h > 0 ? `${h}h ${m}min` : `${m}min`;
 }

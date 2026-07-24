@@ -2,6 +2,7 @@ import {
   Bell,
   CheckCheck,
   FileCheck2,
+  Flag,
   KeyRound,
   PackagePlus,
   Trash2,
@@ -24,6 +25,7 @@ const ICONS: Record<NotificationKind, React.ComponentType<{ className?: string }
   lote_criado: PackagePlus,
   acesso_gerado: KeyRound,
   rota_confirmada: Truck,
+  rota_concluida: Flag,
   arquivo_gerado: FileCheck2,
   lote_excluido: Trash2,
 };
