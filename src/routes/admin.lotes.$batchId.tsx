@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import {
+  AlertTriangle,
   CalendarDays,
   Check,
   Copy,
@@ -39,6 +40,7 @@ import {
   fmtInt,
   fmtWeight,
 } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import {
   batchTotals,
   driverAccess,
@@ -180,14 +182,25 @@ function BatchDetailsPage() {
 
       <section className="rounded-2xl border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Motorista responsável
             </p>
             <p className="mt-1 font-semibold">{dr?.nome ?? "Não atribuído"}</p>
-            {dr?.telefone && (
-              <p className="text-xs text-muted-foreground">{dr.telefone}</p>
-            )}
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+              {dr?.telefone && <span>{dr.telefone}</span>}
+              {dr?.cnhCategoria && <span>CNH {dr.cnhCategoria}</span>}
+              {(dr?.veiculoTipo || dr?.veiculoPlaca) && (
+                <span>
+                  {[dr.veiculoTipo, dr.veiculoModelo, dr.veiculoPlaca]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              )}
+              {dr?.veiculoCapacidadeKg ? (
+                <span>Capacidade {fmtWeight(dr.veiculoCapacidadeKg)}</span>
+              ) : null}
+            </div>
           </div>
           {!locked && drivers.length > 0 && (
             <div className="min-w-[220px]">
@@ -212,6 +225,32 @@ function BatchDetailsPage() {
             </div>
           )}
         </div>
+
+        {/* Peso da carga contra a capacidade do veículo: erro caro de pegar
+            só na hora do carregamento. */}
+        {dr?.veiculoCapacidadeKg ? (
+          (() => {
+            const excede = t.peso > dr.veiculoCapacidadeKg;
+            const uso = Math.round((t.peso / dr.veiculoCapacidadeKg) * 100);
+            return (
+              <div
+                className={cn(
+                  "mt-3 flex items-start gap-2 rounded-lg px-3 py-2 text-xs font-medium",
+                  excede
+                    ? "bg-destructive/10 text-destructive"
+                    : "bg-muted/50 text-muted-foreground",
+                )}
+              >
+                {excede && <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />}
+                <span>
+                  Carga de {fmtWeight(t.peso)} ocupa <strong>{uso}%</strong> da
+                  capacidade do veículo ({fmtWeight(dr.veiculoCapacidadeKg)})
+                  {excede && " — acima do limite."}
+                </span>
+              </div>
+            );
+          })()
+        ) : null}
       </section>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

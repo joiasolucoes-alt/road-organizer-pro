@@ -39,8 +39,45 @@ for (const d of deliveries) {
 }
 
 export const drivers: Driver[] = [
-  { id: "drv-01", nome: "Carlos Ferreira", telefone: "(32) 99811-4402" },
-  { id: "drv-02", nome: "Ronaldo Lima", telefone: "(32) 99733-1120" },
+  {
+    id: "drv-01",
+    nome: "Carlos Ferreira",
+    telefone: "(32) 99811-4402",
+    cpf: "047.812.336-70",
+    dataNascimento: "1984-03-12",
+    email: "carlos.ferreira@masterdistribuidora.com.br",
+    telefoneEmergencia: "(32) 98812-7745",
+    cnhNumero: "04781233670",
+    cnhCategoria: "E",
+    cnhValidade: "2027-05-30",
+    moppValidade: "2026-11-14",
+    veiculoPlaca: "RKM8D42",
+    veiculoTipo: "Truck",
+    veiculoModelo: "VW Delivery 11.180",
+    veiculoAno: "2021",
+    veiculoCapacidadeKg: 6500,
+    veiculoRenavam: "01147829365",
+    veiculoAntt: "58412907",
+    ativo: true,
+  },
+  {
+    id: "drv-02",
+    nome: "Ronaldo Lima",
+    telefone: "(32) 99733-1120",
+    cpf: "128.554.906-22",
+    dataNascimento: "1979-09-27",
+    telefoneEmergencia: "(32) 99120-3388",
+    cnhNumero: "12855490622",
+    cnhCategoria: "D",
+    cnhValidade: "2026-08-19",
+    veiculoPlaca: "PXA4J17",
+    veiculoTipo: "Toco",
+    veiculoModelo: "Mercedes-Benz Accelo 1016",
+    veiculoAno: "2019",
+    veiculoCapacidadeKg: 4200,
+    veiculoRenavam: "00982371544",
+    ativo: true,
+  },
 ];
 
 function buildSquares(items: Delivery[]): Square[] {

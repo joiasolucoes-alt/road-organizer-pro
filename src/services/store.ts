@@ -132,7 +132,7 @@ async function pullRemote(): Promise<State | null> {
   if (!supabase) return null;
   const [b, d, n] = await Promise.all([
     supabase.from("batches").select("payload, updated_at").order("updated_at", { ascending: false }),
-    supabase.from("drivers").select("id, nome, telefone").order("created_at"),
+    supabase.from("drivers").select("id, nome, telefone, payload").order("created_at"),
     supabase
       .from("notifications")
       .select("id, kind, batch_id, title, description, read, created_at")
@@ -145,7 +145,14 @@ async function pullRemote(): Promise<State | null> {
 
   return {
     batches: (b.data ?? []).map((r) => r.payload as unknown as Batch),
-    drivers: (d.data ?? []) as Driver[],
+    // O cadastro completo vive no payload; nome/telefone das colunas mandam
+    // caso as duas fontes divirjam.
+    drivers: (d.data ?? []).map((r) => ({
+      ...((r.payload ?? {}) as Partial<Driver>),
+      id: r.id as string,
+      nome: r.nome as string,
+      telefone: (r.telefone as string) ?? "",
+    })) as Driver[],
     notifications: (n.data ?? []).map((r) => ({
       id: r.id as string,
       kind: r.kind as NotificationKind,
@@ -163,7 +170,12 @@ async function pushRemote(s: State) {
   const ops = [
     supabase.from("batches").upsert(s.batches.map(batchRow)),
     supabase.from("drivers").upsert(
-      s.drivers.map((d) => ({ id: d.id, nome: d.nome, telefone: d.telefone })),
+      s.drivers.map((d) => ({
+        id: d.id,
+        nome: d.nome,
+        telefone: d.telefone,
+        payload: d as unknown as Record<string, unknown>,
+      })),
     ),
   ];
   if (s.notifications.length > 0) {
@@ -668,12 +680,14 @@ export const store = {
       });
     });
   },
-  addDriver(nome: string, telefone: string) {
+  addDriver(data: Omit<Driver, "id">) {
     update((s) => {
       s.drivers.push({
+        ...data,
         id: `drv-${Date.now()}`,
-        nome: nome.trim(),
-        telefone: telefone.trim(),
+        nome: data.nome.trim(),
+        telefone: data.telefone.trim(),
+        ativo: data.ativo ?? true,
       });
     });
   },
@@ -689,6 +703,13 @@ export const store = {
     update((s) => {
       if (s.batches.some((b) => b.motoristaId === id)) return;
       s.drivers = s.drivers.filter((d) => d.id !== id);
+      void supabase
+        ?.from("drivers")
+        .delete()
+        .eq("id", id)
+        .then(({ error }) => {
+          if (error) console.error("[master-rotas] falha ao excluir:", error);
+        });
       ok = true;
     });
     return ok;

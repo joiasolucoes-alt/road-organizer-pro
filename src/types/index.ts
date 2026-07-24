@@ -45,10 +45,81 @@ export interface Square {
   deliveryIds: string[]; // ordered
 }
 
+export type CnhCategoria = "B" | "C" | "D" | "E" | "AB" | "AC" | "AD" | "AE";
+
+export type VeiculoTipo =
+  | "Van"
+  | "VUC"
+  | "Toco"
+  | "Truck"
+  | "Bitruck"
+  | "Carreta";
+
+export const CNH_CATEGORIAS: CnhCategoria[] = [
+  "B",
+  "C",
+  "D",
+  "E",
+  "AB",
+  "AC",
+  "AD",
+  "AE",
+];
+
+export const VEICULO_TIPOS: VeiculoTipo[] = [
+  "Van",
+  "VUC",
+  "Toco",
+  "Truck",
+  "Bitruck",
+  "Carreta",
+];
+
+/**
+ * Só `nome` é obrigatório. `telefone` não é exigido pelo formulário, mas sem
+ * ele o envio do acesso por WhatsApp fica indisponível.
+ */
 export interface Driver {
   id: string;
   nome: string;
   telefone: string;
+
+  // Dados pessoais
+  cpf?: string;
+  rg?: string;
+  dataNascimento?: string;
+  email?: string;
+  telefoneEmergencia?: string;
+
+  // Habilitação
+  cnhNumero?: string;
+  cnhCategoria?: CnhCategoria;
+  cnhValidade?: string;
+  moppValidade?: string;
+
+  // Veículo
+  veiculoPlaca?: string;
+  veiculoTipo?: VeiculoTipo;
+  veiculoModelo?: string;
+  veiculoAno?: string;
+  veiculoCapacidadeKg?: number;
+  veiculoRenavam?: string;
+  veiculoAntt?: string;
+
+  // Operacional
+  ativo?: boolean;
+  observacoes?: string;
+}
+
+/** dias restantes até a data (negativo = vencido). null se não informada. */
+export function diasAteVencimento(iso?: string): number | null {
+  if (!iso) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return null;
+  const alvo = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  return Math.round((alvo.getTime() - hoje.getTime()) / 86400000);
 }
 
 export type DeliveryIssueReason =
