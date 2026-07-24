@@ -6,9 +6,12 @@ import { AppLogo } from "@/components/AppLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { driverSession, store, useStore } from "@/services/store";
+import { driverSession, store } from "@/services/store";
 
 export const Route = createFileRoute("/rota/")({
+  // `r` = código da rota pré-preenchido pelo link enviado ao motorista.
+  validateSearch: (search: Record<string, unknown>): { r?: string } =>
+    typeof search.r === "string" ? { r: search.r } : {},
   head: () => ({
     meta: [
       { title: "Acesso do motorista — Master Rotas" },
@@ -28,11 +31,11 @@ export const Route = createFileRoute("/rota/")({
 
 function DriverLoginPage() {
   const navigate = useNavigate();
-  const [routeCode, setRouteCode] = useState("");
+  const { r: routeFromLink } = Route.useSearch();
+  const [routeCode, setRouteCode] = useState((routeFromLink ?? "").toUpperCase());
   const [accessCode, setAccessCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [existingSession, setExistingSession] = useState<string | null>(null);
-  const batches = useStore((s) => s.batches);
 
   useEffect(() => {
     const s = driverSession.get();
@@ -40,6 +43,11 @@ function DriverLoginPage() {
       setExistingSession(s.routeCode);
     }
   }, []);
+
+  // Se o link mudar (navegação interna), reflete no campo.
+  useEffect(() => {
+    if (routeFromLink) setRouteCode(routeFromLink.toUpperCase());
+  }, [routeFromLink]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
