@@ -5,6 +5,7 @@ import {
   Clock,
   MapPinOff,
   MoreVertical,
+  Navigation,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { fmtCurrency, fmtWeight } from "@/lib/format";
+import { googleMapsNavUrl, wazeNavUrl } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import type { Delivery, DeliveryIssueReason } from "@/types";
 
@@ -155,6 +157,43 @@ export function DeliveryReorderRow({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="default"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            aria-label="Navegar até a entrega"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Navigation className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuLabel>Navegar até</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <a
+              href={googleMapsNavUrl(d.latitude, d.longitude)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Navigation className="h-4 w-4" /> Google Maps
+            </a>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <a
+              href={wazeNavUrl(d.latitude, d.longitude)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Navigation className="h-4 w-4" /> Waze
+            </a>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
