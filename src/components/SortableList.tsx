@@ -63,26 +63,28 @@ function SortableRow({ id, index, total, onMove, children }: SortableRowProps) {
           <GripVertical className="h-4 w-4" />
         </button>
         <div className="min-w-0 flex-1 p-3 sm:p-4">{children}</div>
-        <div className="flex flex-col items-center justify-center gap-1 border-l bg-muted/30 px-1.5 py-2">
+        {/* No celular as setas são o controle principal — arrastar com o dedo
+            numa lista longa é impreciso. 28px era alvo pequeno demais. */}
+        <div className="flex flex-col items-center justify-center gap-0.5 border-l bg-muted/30 px-1 py-2 sm:gap-1 sm:px-1.5">
           <Button
             size="icon"
             variant="ghost"
-            className="h-7 w-7"
+            className="h-10 w-10 sm:h-7 sm:w-7"
             disabled={index === 0}
             onClick={() => onMove(-1)}
             aria-label="Mover para cima"
           >
-            <ArrowUp className="h-4 w-4" />
+            <ArrowUp className="h-5 w-5 sm:h-4 sm:w-4" />
           </Button>
           <Button
             size="icon"
             variant="ghost"
-            className="h-7 w-7"
+            className="h-10 w-10 sm:h-7 sm:w-7"
             disabled={index === total - 1}
             onClick={() => onMove(1)}
             aria-label="Mover para baixo"
           >
-            <ArrowDown className="h-4 w-4" />
+            <ArrowDown className="h-5 w-5 sm:h-4 sm:w-4" />
           </Button>
         </div>
       </div>

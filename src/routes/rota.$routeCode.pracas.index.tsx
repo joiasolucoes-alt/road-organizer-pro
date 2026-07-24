@@ -20,12 +20,12 @@ import { fmtCurrency, fmtDate, fmtInt, fmtWeight } from "@/lib/format";
 import { batchTotals, squareTotals, store, useStore } from "@/services/store";
 import type { Batch, Square } from "@/types";
 
-export const Route = createFileRoute("/rota/$routeCode/pracas")({
+export const Route = createFileRoute("/rota/$routeCode/pracas/")({
   component: PracasPage,
 });
 
 function PracasPage() {
-  const { routeCode } = useParams({ from: "/rota/$routeCode/pracas" });
+  const { routeCode } = useParams({ from: "/rota/$routeCode/pracas/" });
   const batch = useStore((s) =>
     s.batches.find((b) => b.routeCode === routeCode),
   )!;
@@ -41,8 +41,8 @@ function PracasPage() {
 
   return (
     <div className="space-y-4 pb-24 xl:pb-4">
-      <header className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <header className="rounded-2xl border bg-card p-3 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between lg:gap-3">
           <div>
             <Link
               to="/rota/$routeCode"
@@ -51,16 +51,19 @@ function PracasPage() {
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Voltar ao resumo
             </Link>
-            <h1 className="mt-2 text-xl font-bold tracking-tight sm:text-2xl">
+            <h1 className="mt-1.5 text-lg font-bold tracking-tight sm:mt-2 sm:text-2xl">
               Definir ordem das praças
             </h1>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            {/* No celular a instrução longa empurrava a lista para fora da tela. */}
+            <p className="mt-1 max-w-2xl text-xs text-muted-foreground sm:text-sm">
               {locked
                 ? "Esta rota já foi confirmada - visualização somente leitura."
-                : "Arraste os cards ou use as setas para organizar a sequência de visita. Abra uma praça para definir a ordem das entregas."}
+                : "Use as setas ou arraste pela alça para reordenar."}
             </p>
           </div>
-          <StatusBadge status={batch.status} />
+          <div className="hidden lg:block">
+            <StatusBadge status={batch.status} />
+          </div>
         </div>
       </header>
 
@@ -106,13 +109,13 @@ function PracasPage() {
               store.reorderSquares(batch.id, order);
             }}
             renderItem={(sq) => (
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 <SquareCard square={sq} totals={squareTotals(batch, sq.id)} />
                 <Button
                   asChild
                   variant="outline"
                   size="sm"
-                  className="w-full justify-between"
+                  className="h-8 w-full justify-between text-xs sm:h-9 sm:text-sm"
                 >
                   <Link
                     to="/rota/$routeCode/pracas/$squareId"

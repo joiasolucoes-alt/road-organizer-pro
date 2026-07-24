@@ -33,7 +33,24 @@ export function SquareCard({ square, totals }: Props) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+      {/* No celular a grade 2x2 dobrava a altura do card e deixava só ~2
+          praças visíveis por vez, o que inviabiliza arrastar. */}
+      <div className="flex flex-wrap gap-1.5 text-[11px] sm:hidden">
+        <Pill icon={<CalendarDays className="h-3 w-3" />}>
+          {fmtDate(square.data)}
+        </Pill>
+        <Pill icon={<Package className="h-3 w-3" />}>
+          {fmtInt(totals.entregas)} entregas
+        </Pill>
+        <Pill icon={<Scale className="h-3 w-3" />}>
+          {fmtWeight(totals.peso)}
+        </Pill>
+        <Pill icon={<Wallet className="h-3 w-3" />}>
+          {fmtCurrency(totals.valor)}
+        </Pill>
+      </div>
+
+      <div className="hidden grid-cols-4 gap-2 text-xs sm:grid">
         <Stat
           icon={<CalendarDays className="h-3.5 w-3.5" />}
           label="Data"
@@ -56,6 +73,21 @@ export function SquareCard({ square, totals }: Props) {
         />
       </div>
     </div>
+  );
+}
+
+function Pill({
+  icon,
+  children,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-1.5 py-1 font-medium text-foreground">
+      <span className="text-muted-foreground">{icon}</span>
+      {children}
+    </span>
   );
 }
 

@@ -107,22 +107,35 @@ function DriverLayout() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b bg-card/95 shadow-sm backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="rounded-xl bg-primary/10 p-1.5 ring-1 ring-primary/15">
-              <AppLogo variant="mark" className="h-9 w-9" />
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-2 sm:px-6 sm:py-3 lg:flex-row lg:items-center lg:justify-between lg:gap-3">
+          {/* Linha 1 no mobile: identidade + status + sair, tudo lado a lado. */}
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <div className="rounded-lg bg-primary/10 p-1 ring-1 ring-primary/15 sm:rounded-xl sm:p-1.5">
+              <AppLogo variant="mark" className="h-7 w-7 sm:h-9 sm:w-9" />
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">
                 Master Rotas
               </p>
-              <p className="truncate text-base font-bold text-foreground">
+              <p className="truncate text-sm font-bold text-foreground sm:text-base">
                 {driver?.nome ?? "Motorista"}
               </p>
             </div>
+            <div className="flex shrink-0 items-center gap-2 lg:hidden">
+              <StatusBadge status={batch.status} />
+              <button
+                type="button"
+                onClick={logout}
+                aria-label="Sair da rota"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border bg-background text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
-          <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-3 lg:min-w-[520px]">
+          {/* Os três fatos cabem numa linha só — empilhar comia 1/3 da tela. */}
+          <div className="grid grid-cols-3 gap-1.5 text-xs text-muted-foreground sm:gap-2 lg:min-w-[520px]">
             <HeaderFact
               icon={<RouteIcon className="h-4 w-4" />}
               label="Carga"
@@ -140,7 +153,7 @@ function DriverLayout() {
             />
           </div>
 
-          <div className="flex items-center justify-between gap-3 lg:justify-end">
+          <div className="hidden items-center justify-end gap-3 lg:flex">
             <StatusBadge status={batch.status} />
             <button
               type="button"
@@ -170,13 +183,13 @@ function HeaderFact({
   value: string;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded-lg bg-muted/45 px-3 py-2">
-      <span className="shrink-0 text-primary">{icon}</span>
+    <div className="flex min-w-0 items-center gap-1.5 rounded-lg bg-muted/45 px-2 py-1.5 sm:gap-2 sm:px-3 sm:py-2">
+      <span className="hidden shrink-0 text-primary sm:block">{icon}</span>
       <span className="min-w-0">
-        <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="block text-[9px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-[10px]">
           {label}
         </span>
-        <span className="block truncate font-semibold text-foreground">
+        <span className="block truncate text-[11px] font-semibold text-foreground sm:text-xs">
           {value}
         </span>
       </span>
