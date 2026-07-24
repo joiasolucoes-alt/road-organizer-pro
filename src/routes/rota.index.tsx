@@ -6,7 +6,7 @@ import { AppLogo } from "@/components/AppLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { driverSession, store, useStore } from "@/services/store";
+import { driverSession, store } from "@/services/store";
 
 export const Route = createFileRoute("/rota/")({
   // `r` = código da rota pré-preenchido pelo link enviado ao motorista.
@@ -36,7 +36,6 @@ function DriverLoginPage() {
   const [accessCode, setAccessCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [existingSession, setExistingSession] = useState<string | null>(null);
-  const batches = useStore((s) => s.batches);
 
   useEffect(() => {
     const s = driverSession.get();
