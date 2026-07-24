@@ -81,6 +81,7 @@ function BatchDetailsPage() {
   const dr = drivers.find((d) => d.id === batch.motoristaId);
   const veiculo = vehicles.find((v) => v.id === batch.veiculoId);
   const acesso = batch.acesso;
+  const entreguesCount = Object.keys(batch.execucao?.entregues ?? {}).length;
   const dias = Array.from(new Set(batch.squares.map((s) => s.data))).sort();
   const origin =
     typeof window !== "undefined" ? window.location.origin : "";
@@ -352,6 +353,35 @@ function BatchDetailsPage() {
           </span>
         ) : null}
       </section>
+
+      {/* Execução: só existe depois que o motorista começa a rodar a rota. */}
+      {batch.execucao?.iniciadaEm && (
+        <section className="rounded-2xl border bg-card p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Execução da rota
+              </p>
+              <p className="mt-1 text-sm font-semibold">
+                {batch.execucao.concluidaEm
+                  ? `Concluída em ${fmtDateTime(batch.execucao.concluidaEm)}`
+                  : `Em andamento desde ${fmtDateTime(batch.execucao.iniciadaEm)}`}
+              </p>
+            </div>
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
+              {entreguesCount} / {t.entregas} entregas
+            </span>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{
+                width: `${t.entregas ? (entreguesCount / t.entregas) * 100 : 0}%`,
+              }}
+            />
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Dias" value={fmtInt(t.dias)} />

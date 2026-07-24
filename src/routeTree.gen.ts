@@ -22,6 +22,7 @@ import { Route as RotaRouteCodeIndexRouteImport } from './routes/rota.$routeCode
 import { Route as AdminMotoristasIndexRouteImport } from './routes/admin.motoristas.index'
 import { Route as AdminLotesIndexRouteImport } from './routes/admin.lotes.index'
 import { Route as RotaRouteCodeResumoRouteImport } from './routes/rota.$routeCode.resumo'
+import { Route as RotaRouteCodeExecutarRouteImport } from './routes/rota.$routeCode.executar'
 import { Route as RotaRouteCodeConfirmadaRouteImport } from './routes/rota.$routeCode.confirmada'
 import { Route as AdminMotoristasDriverIdRouteImport } from './routes/admin.motoristas.$driverId'
 import { Route as AdminLotesBatchIdRouteImport } from './routes/admin.lotes.$batchId'
@@ -94,6 +95,11 @@ const RotaRouteCodeResumoRoute = RotaRouteCodeResumoRouteImport.update({
   path: '/resumo',
   getParentRoute: () => RotaRouteCodeRoute,
 } as any)
+const RotaRouteCodeExecutarRoute = RotaRouteCodeExecutarRouteImport.update({
+  id: '/executar',
+  path: '/executar',
+  getParentRoute: () => RotaRouteCodeRoute,
+} as any)
 const RotaRouteCodeConfirmadaRoute = RotaRouteCodeConfirmadaRouteImport.update({
   id: '/confirmada',
   path: '/confirmada',
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/admin/lotes/$batchId': typeof AdminLotesBatchIdRouteWithChildren
   '/admin/motoristas/$driverId': typeof AdminMotoristasDriverIdRoute
   '/rota/$routeCode/confirmada': typeof RotaRouteCodeConfirmadaRoute
+  '/rota/$routeCode/executar': typeof RotaRouteCodeExecutarRoute
   '/rota/$routeCode/resumo': typeof RotaRouteCodeResumoRoute
   '/admin/lotes/': typeof AdminLotesIndexRoute
   '/admin/motoristas/': typeof AdminMotoristasIndexRoute
@@ -160,6 +167,7 @@ export interface FileRoutesByTo {
   '/admin/lotes/$batchId': typeof AdminLotesBatchIdRouteWithChildren
   '/admin/motoristas/$driverId': typeof AdminMotoristasDriverIdRoute
   '/rota/$routeCode/confirmada': typeof RotaRouteCodeConfirmadaRoute
+  '/rota/$routeCode/executar': typeof RotaRouteCodeExecutarRoute
   '/rota/$routeCode/resumo': typeof RotaRouteCodeResumoRoute
   '/admin/lotes': typeof AdminLotesIndexRoute
   '/admin/motoristas': typeof AdminMotoristasIndexRoute
@@ -182,6 +190,7 @@ export interface FileRoutesById {
   '/admin/lotes/$batchId': typeof AdminLotesBatchIdRouteWithChildren
   '/admin/motoristas/$driverId': typeof AdminMotoristasDriverIdRoute
   '/rota/$routeCode/confirmada': typeof RotaRouteCodeConfirmadaRoute
+  '/rota/$routeCode/executar': typeof RotaRouteCodeExecutarRoute
   '/rota/$routeCode/resumo': typeof RotaRouteCodeResumoRoute
   '/admin/lotes/': typeof AdminLotesIndexRoute
   '/admin/motoristas/': typeof AdminMotoristasIndexRoute
@@ -205,6 +214,7 @@ export interface FileRouteTypes {
     | '/admin/lotes/$batchId'
     | '/admin/motoristas/$driverId'
     | '/rota/$routeCode/confirmada'
+    | '/rota/$routeCode/executar'
     | '/rota/$routeCode/resumo'
     | '/admin/lotes/'
     | '/admin/motoristas/'
@@ -224,6 +234,7 @@ export interface FileRouteTypes {
     | '/admin/lotes/$batchId'
     | '/admin/motoristas/$driverId'
     | '/rota/$routeCode/confirmada'
+    | '/rota/$routeCode/executar'
     | '/rota/$routeCode/resumo'
     | '/admin/lotes'
     | '/admin/motoristas'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/admin/lotes/$batchId'
     | '/admin/motoristas/$driverId'
     | '/rota/$routeCode/confirmada'
+    | '/rota/$routeCode/executar'
     | '/rota/$routeCode/resumo'
     | '/admin/lotes/'
     | '/admin/motoristas/'
@@ -354,6 +366,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RotaRouteCodeResumoRouteImport
       parentRoute: typeof RotaRouteCodeRoute
     }
+    '/rota/$routeCode/executar': {
+      id: '/rota/$routeCode/executar'
+      path: '/executar'
+      fullPath: '/rota/$routeCode/executar'
+      preLoaderRoute: typeof RotaRouteCodeExecutarRouteImport
+      parentRoute: typeof RotaRouteCodeRoute
+    }
     '/rota/$routeCode/confirmada': {
       id: '/rota/$routeCode/confirmada'
       path: '/confirmada'
@@ -438,6 +457,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface RotaRouteCodeRouteChildren {
   RotaRouteCodeConfirmadaRoute: typeof RotaRouteCodeConfirmadaRoute
+  RotaRouteCodeExecutarRoute: typeof RotaRouteCodeExecutarRoute
   RotaRouteCodeResumoRoute: typeof RotaRouteCodeResumoRoute
   RotaRouteCodeIndexRoute: typeof RotaRouteCodeIndexRoute
   RotaRouteCodePracasSquareIdRoute: typeof RotaRouteCodePracasSquareIdRoute
@@ -446,6 +466,7 @@ interface RotaRouteCodeRouteChildren {
 
 const RotaRouteCodeRouteChildren: RotaRouteCodeRouteChildren = {
   RotaRouteCodeConfirmadaRoute: RotaRouteCodeConfirmadaRoute,
+  RotaRouteCodeExecutarRoute: RotaRouteCodeExecutarRoute,
   RotaRouteCodeResumoRoute: RotaRouteCodeResumoRoute,
   RotaRouteCodeIndexRoute: RotaRouteCodeIndexRoute,
   RotaRouteCodePracasSquareIdRoute: RotaRouteCodePracasSquareIdRoute,
@@ -465,3 +486,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

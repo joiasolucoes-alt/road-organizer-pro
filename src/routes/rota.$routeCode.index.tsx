@@ -34,6 +34,13 @@ function DriverSummary() {
   );
   const locked = batch.status === "confirmado" || batch.status === "arquivo_gerado";
 
+  const feitas = Object.keys(batch.execucao?.entregues ?? {}).length;
+  const rotuloExecucao = batch.execucao?.concluidaEm
+    ? "Ver rota concluída"
+    : feitas > 0
+      ? `Continuar rota (${feitas}/${t.entregas})`
+      : "Iniciar rota";
+
   return (
     <div className="space-y-6 pb-24 lg:pb-6">
       <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
@@ -156,16 +163,33 @@ function DriverSummary() {
           </div>
 
           <div className="hidden rounded-2xl border bg-card p-4 shadow-sm lg:block">
-            {(batch.status === "confirmado" ||
-              batch.status === "arquivo_gerado") ? (
-              <Button asChild size="lg" className="w-full">
-                <Link
-                  to="/rota/$routeCode/confirmada"
-                  params={{ routeCode: batch.routeCode }}
-                >
-                  Ver rota confirmada <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+            {locked ? (
+              <div className="space-y-2">
+                <Button asChild size="lg" className="w-full">
+                  <Link
+                    to="/rota/$routeCode/executar"
+                    params={{ routeCode: batch.routeCode }}
+                  >
+                    {rotuloExecucao} <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full">
+                  <Link
+                    to="/rota/$routeCode/pracas"
+                    params={{ routeCode: batch.routeCode }}
+                  >
+                    Ver praças e entregas
+                  </Link>
+                </Button>
+                <Button asChild variant="ghost" className="w-full">
+                  <Link
+                    to="/rota/$routeCode/confirmada"
+                    params={{ routeCode: batch.routeCode }}
+                  >
+                    Comprovante da rota
+                  </Link>
+                </Button>
+              </div>
             ) : (
               <Button asChild size="lg" className="w-full">
                 <Link
@@ -180,15 +204,41 @@ function DriverSummary() {
         </aside>
       </div>
 
-      {(batch.status === "confirmado" || batch.status === "arquivo_gerado") && (
-        <Button asChild size="lg" className="w-full lg:hidden">
-          <Link
-            to="/rota/$routeCode/confirmada"
-            params={{ routeCode: batch.routeCode }}
+      {/* Confirmar bloqueia a EDIÇÃO da ordem — não o acesso às entregas.
+          Daqui em diante o motorista precisa é rodar a rota. */}
+      {locked && (
+        <div className="sticky bottom-3 z-20 space-y-2 lg:hidden">
+          <Button
+            asChild
+            size="lg"
+            className="h-14 w-full text-base font-semibold shadow-lg"
           >
-            Ver rota confirmada <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
+            <Link
+              to="/rota/$routeCode/executar"
+              params={{ routeCode: batch.routeCode }}
+            >
+              {rotuloExecucao} <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button asChild variant="outline" className="bg-card">
+              <Link
+                to="/rota/$routeCode/pracas"
+                params={{ routeCode: batch.routeCode }}
+              >
+                Ver entregas
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="bg-card">
+              <Link
+                to="/rota/$routeCode/confirmada"
+                params={{ routeCode: batch.routeCode }}
+              >
+                Comprovante
+              </Link>
+            </Button>
+          </div>
+        </div>
       )}
 
       {!locked && (

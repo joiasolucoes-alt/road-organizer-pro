@@ -13,6 +13,7 @@ import type {
   Delivery,
   DeliveryIssueReason,
   Driver,
+  Execucao,
   DriverSession,
   NotificationKind,
   Vehicle,
@@ -525,6 +526,42 @@ export const store = {
       ok = true;
     });
     return ok;
+  },
+  /** Começa a execução. Só faz sentido depois da rota confirmada. */
+  startRoute(batchId: string) {
+    update((s) => {
+      const b = s.batches.find((x) => x.id === batchId);
+      if (!b) return;
+      if (b.execucao?.iniciadaEm) return;
+      b.execucao = {
+        ...(b.execucao ?? { entregues: {} }),
+        iniciadaEm: new Date().toISOString(),
+      };
+    });
+  },
+  /** Marca/desmarca uma entrega como concluída, guardando o horário. */
+  setDeliveryDone(batchId: string, deliveryId: string, done: boolean) {
+    update((s) => {
+      const b = s.batches.find((x) => x.id === batchId);
+      if (!b) return;
+      const exec: Execucao = b.execucao ?? { entregues: {} };
+      const entregues = { ...exec.entregues };
+      if (done) entregues[deliveryId] = new Date().toISOString();
+      else delete entregues[deliveryId];
+
+      const total = b.deliveries.length;
+      const feitas = Object.keys(entregues).length;
+      b.execucao = {
+        ...exec,
+        iniciadaEm: exec.iniciadaEm ?? new Date().toISOString(),
+        entregues,
+        // Fecha sozinho na última entrega; reabre se o motorista desmarcar.
+        concluidaEm:
+          feitas >= total && total > 0
+            ? (exec.concluidaEm ?? new Date().toISOString())
+            : undefined,
+      };
+    });
   },
   /**
    * Marca que o motorista abriu o link. Chamado a cada entrada autorizada;

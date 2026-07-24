@@ -169,6 +169,17 @@ export interface AccessLog {
   aberturas: number;
 }
 
+/**
+ * Execução da rota — o que acontece DEPOIS de confirmar a ordem.
+ * Confirmar bloqueia a edição da sequência, não o acesso às entregas.
+ */
+export interface Execucao {
+  iniciadaEm?: string;
+  concluidaEm?: string;
+  /** deliveryId -> instante em que foi marcada como entregue */
+  entregues: Record<string, string>;
+}
+
 export interface Batch {
   id: string;
   codigo: string;
@@ -176,6 +187,7 @@ export interface Batch {
   motoristaId: string;
   veiculoId?: string;
   acesso?: AccessLog;
+  execucao?: Execucao;
   status: BatchStatus;
   createdAt: string;
   confirmedAt?: string;

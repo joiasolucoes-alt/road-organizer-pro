@@ -191,10 +191,11 @@ function SquareDeliveriesPage() {
             asChild
             size="lg"
             className="w-full"
-            onClick={() => toast.success("Sequência salva")}
+            onClick={() => !locked && toast.success("Sequência salva")}
           >
             <Link to="/rota/$routeCode/pracas" params={{ routeCode }}>
-              Salvar sequência <ArrowRight className="ml-1 h-4 w-4" />
+              {locked ? "Voltar às praças" : "Salvar sequência"}
+              <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>
         </aside>
@@ -215,10 +216,14 @@ function SquareDeliveriesPage() {
           <Button
             asChild
             className="flex-[2]"
-            onClick={() => toast.success("Sequência salva")}
+            onClick={() => !locked && toast.success("Sequência salva")}
           >
-            <Link to="/rota/$routeCode/pracas" params={{ routeCode }}>
-              Salvar sequência <ArrowRight className="ml-1 h-4 w-4" />
+            <Link
+              to={locked ? "/rota/$routeCode/executar" : "/rota/$routeCode/pracas"}
+              params={{ routeCode }}
+            >
+              {locked ? "Iniciar rota" : "Salvar sequência"}
+              <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>
         </div>

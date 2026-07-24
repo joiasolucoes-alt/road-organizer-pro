@@ -169,10 +169,10 @@ function PracasPage() {
               {locked ? (
                 <Button asChild className="flex-[2]">
                   <Link
-                    to="/rota/$routeCode/confirmada"
+                    to="/rota/$routeCode/executar"
                     params={{ routeCode }}
                   >
-                    Ver rota confirmada <ArrowRight className="ml-1 h-4 w-4" />
+                    Iniciar rota <ArrowRight className="ml-1 h-4 w-4" />
                   </Link>
                 </Button>
               ) : (
@@ -201,8 +201,8 @@ function PracasPage() {
           </Button>
           {locked ? (
             <Button asChild className="flex-[2]">
-              <Link to="/rota/$routeCode/confirmada" params={{ routeCode }}>
-                Ver rota confirmada <ArrowRight className="ml-1 h-4 w-4" />
+              <Link to="/rota/$routeCode/executar" params={{ routeCode }}>
+                Iniciar rota <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
           ) : (
