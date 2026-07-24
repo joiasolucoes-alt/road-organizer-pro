@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { DeliveryReorderRow } from "@/components/DeliveryReorderRow";
 import { DeliveryDetailsDrawer } from "@/components/DeliveryDetailsDrawer";
 import { SortableList } from "@/components/SortableList";
+import { SquareRouteMapLazy } from "@/components/SquareRouteMapLazy";
 import { Button } from "@/components/ui/button";
 import { fmtCurrency, fmtDate, fmtInt, fmtWeight } from "@/lib/format";
 import { squareTotals, store, useStore } from "@/services/store";
@@ -104,6 +105,7 @@ function SquareDeliveriesPage() {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <section className="min-w-0 space-y-3">
+          <SquareRouteMapLazy deliveries={items} />
           {locked && (
             <div className="rounded-lg border-l-4 border-primary bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
               Rota confirmada — visualização somente leitura.
