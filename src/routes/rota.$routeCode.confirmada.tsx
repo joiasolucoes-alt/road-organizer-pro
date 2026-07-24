@@ -4,7 +4,9 @@ import {
   CheckCircle2,
   Download,
   FileCheck2,
+  ListChecks,
   Loader2,
+  Navigation,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -33,6 +35,13 @@ function ConfirmadaPage() {
   const t = batchTotals(batch);
   const [genStep, setGenStep] = useState(-1);
   const [generating, setGenerating] = useState(false);
+
+  const feitas = Object.keys(batch.execucao?.entregues ?? {}).length;
+  const rotuloExecucao = batch.execucao?.concluidaEm
+    ? "Ver rota concluída"
+    : feitas > 0
+      ? `Continuar rota (${feitas}/${t.entregas})`
+      : "Iniciar rota";
 
   async function generate() {
     setGenerating(true);
@@ -124,16 +133,51 @@ function ConfirmadaPage() {
         </p>
       </section>
 
+      {/* Caminho do motorista a partir daqui: rodar a rota ou revisar as
+          entregas. A geração do arquivo (abaixo) é ação de escritório. */}
+      <section className="grid gap-2 sm:grid-cols-2">
+        <Button asChild size="lg" className="h-14 text-base font-semibold">
+          <Link to="/rota/$routeCode/executar" params={{ routeCode }}>
+            <Navigation className="mr-2 h-5 w-5" /> {rotuloExecucao}
+          </Link>
+        </Button>
+        <Button asChild size="lg" variant="outline" className="h-14 text-base">
+          <Link to="/rota/$routeCode/pracas" params={{ routeCode }}>
+            <ListChecks className="mr-2 h-5 w-5" /> Ver praças e entregas
+          </Link>
+        </Button>
+      </section>
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Praças" value={fmtInt(t.pracas)} />
         <StatCard label="Entregas" value={fmtInt(t.entregas)} tone="brand" />
         <StatCard label="Peso" value={fmtWeight(t.peso)} />
         <StatCard label="Valor" value={fmtCurrency(t.valor)} />
-        <StatCard
-          label="Alterações registradas"
-          value={fmtInt(batch.changes.length)}
-        />
       </div>
+
+      {/* Progresso da execução, se já começou. */}
+      {feitas > 0 && (
+        <section className="rounded-2xl border bg-card p-4 shadow-sm">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-semibold">
+              {batch.execucao?.concluidaEm
+                ? "Rota concluída"
+                : "Rota em andamento"}
+            </span>
+            <span className="text-muted-foreground">
+              {feitas} de {t.entregas} entregas
+            </span>
+          </div>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{
+                width: `${t.entregas ? (feitas / t.entregas) * 100 : 0}%`,
+              }}
+            />
+          </div>
+        </section>
+      )}
 
       {generating || genStep >= 0 ? (
         <section className="rounded-2xl border bg-card p-4 shadow-sm">

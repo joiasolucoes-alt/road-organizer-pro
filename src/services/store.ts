@@ -13,6 +13,7 @@ import type {
   Delivery,
   DeliveryIssueReason,
   Driver,
+  EntregaConcluida,
   Execucao,
   DriverSession,
   NotificationKind,
@@ -539,15 +540,29 @@ export const store = {
       };
     });
   },
-  /** Marca/desmarca uma entrega como concluída, guardando o horário. */
-  setDeliveryDone(batchId: string, deliveryId: string, done: boolean) {
+  /**
+   * Confirma (ou reabre) uma entrega. `prova` carrega recebedor, observação e
+   * foto do comprovante — todos opcionais.
+   */
+  setDeliveryDone(
+    batchId: string,
+    deliveryId: string,
+    done: boolean,
+    prova?: Omit<EntregaConcluida, "em">,
+  ) {
     update((s) => {
       const b = s.batches.find((x) => x.id === batchId);
       if (!b) return;
       const exec: Execucao = b.execucao ?? { entregues: {} };
       const entregues = { ...exec.entregues };
-      if (done) entregues[deliveryId] = new Date().toISOString();
-      else delete entregues[deliveryId];
+      if (done) {
+        entregues[deliveryId] = {
+          em: new Date().toISOString(),
+          ...(prova ?? {}),
+        };
+      } else {
+        delete entregues[deliveryId];
+      }
 
       const total = b.deliveries.length;
       const feitas = Object.keys(entregues).length;

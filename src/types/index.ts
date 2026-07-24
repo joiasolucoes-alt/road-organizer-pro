@@ -169,6 +169,20 @@ export interface AccessLog {
   aberturas: number;
 }
 
+/** Comprovação de uma entrega concluída. */
+export interface EntregaConcluida {
+  /** instante da confirmação (ISO) */
+  em: string;
+  /** quem recebeu a mercadoria */
+  recebedor?: string;
+  observacao?: string;
+  /**
+   * Foto do comprovante, já reduzida no cliente. Guardar imagem dentro do
+   * payload do lote só se sustenta na PoC — em produção vai para storage.
+   */
+  foto?: string;
+}
+
 /**
  * Execução da rota — o que acontece DEPOIS de confirmar a ordem.
  * Confirmar bloqueia a edição da sequência, não o acesso às entregas.
@@ -176,8 +190,19 @@ export interface AccessLog {
 export interface Execucao {
   iniciadaEm?: string;
   concluidaEm?: string;
-  /** deliveryId -> instante em que foi marcada como entregue */
-  entregues: Record<string, string>;
+  /** deliveryId -> comprovação */
+  entregues: Record<string, EntregaConcluida>;
+}
+
+/**
+ * Normaliza registros antigos, em que `entregues` guardava só o timestamp
+ * como string.
+ */
+export function entregaInfo(
+  valor: EntregaConcluida | string | undefined,
+): EntregaConcluida | undefined {
+  if (!valor) return undefined;
+  return typeof valor === "string" ? { em: valor } : valor;
 }
 
 export interface Batch {
