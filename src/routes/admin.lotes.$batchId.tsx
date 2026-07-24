@@ -6,6 +6,7 @@ import {
   ExternalLink,
   FileClock,
   MapPin,
+  MessageCircle,
   Package,
   RefreshCw,
   Trash2,
@@ -79,11 +80,46 @@ function BatchDetailsPage() {
   const locked =
     batch.status === "confirmado" || batch.status === "arquivo_gerado";
 
+  const periodo =
+    dias.length > 0
+      ? `${fmtDate(dias[0])} a ${fmtDate(dias[dias.length - 1])}`
+      : "-";
+
+  // Mensagem pronta para o motorista: link com acesso automático e, logo
+  // abaixo, os códigos para quem preferir digitar.
+  const mensagem = [
+    `Olá, ${dr?.nome ?? "motorista"}! Segue o acesso à sua rota na Master Distribuidora.`,
+    ``,
+    `Carga ${batch.carga} · ${t.entregas} entregas · ${t.pracas} praças`,
+    `Período: ${periodo}`,
+    ``,
+    `Abra o link abaixo — o acesso é automático:`,
+    link,
+    ``,
+    `Se precisar entrar manualmente:`,
+    `Código da rota: ${batch.routeCode}`,
+    `Código de acesso: ${batch.accessCode}`,
+  ].join("\n");
+
+  // wa.me exige só dígitos com DDI. Os telefones vêm como "(32) 99811-4402".
+  const telefoneWhats = (() => {
+    const digitos = (dr?.telefone ?? "").replace(/\D/g, "");
+    if (!digitos) return null;
+    return digitos.startsWith("55") ? digitos : `55${digitos}`;
+  })();
+
+  const whatsappUrl = `https://wa.me/${telefoneWhats ?? ""}?text=${encodeURIComponent(mensagem)}`;
+
   function copy() {
     void navigator.clipboard.writeText(link);
     setCopied(true);
     toast.success("Link copiado");
     setTimeout(() => setCopied(false), 1500);
+  }
+
+  function copyMessage() {
+    void navigator.clipboard.writeText(mensagem);
+    toast.success("Mensagem copiada");
   }
 
   function openAccess() {
@@ -248,53 +284,82 @@ function BatchDetailsPage() {
                 O motorista aponta a câmera e entra direto na rota.
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border bg-muted/40 p-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="min-w-0 rounded-lg border bg-muted/40 p-3">
+                <p className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                   Código da rota
                 </p>
-                <p className="mt-1 font-mono text-2xl font-bold">
+                <p className="mt-1 truncate font-mono text-xl font-bold">
                   {batch.routeCode}
                 </p>
               </div>
-              <div className="rounded-lg border bg-muted/40 p-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="min-w-0 rounded-lg border bg-muted/40 p-3">
+                <p className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                   Código de acesso
                 </p>
-                <p className="mt-1 font-mono text-2xl font-bold tracking-widest">
+                <p className="mt-1 truncate font-mono text-xl font-bold tracking-wider">
                   {batch.accessCode}
                 </p>
               </div>
             </div>
-            <div className="rounded-lg border bg-muted/40 p-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="min-w-0 rounded-lg border bg-muted/40 p-3">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                 Link de acesso
               </p>
-              <p className="mt-1 break-all font-mono text-xs">{link}</p>
+              <p className="mt-1 break-all font-mono text-[11px] leading-snug">
+                {link}
+              </p>
             </div>
           </div>
 
-          <DialogFooter className="flex-col gap-2 sm:flex-row">
-            <Button variant="ghost" onClick={regenerate}>
-              <RefreshCw className="mr-2 h-4 w-4" /> Regenerar
-            </Button>
-            <Button variant="outline" onClick={copy}>
-              {copied ? (
-                <Check className="mr-2 h-4 w-4" />
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              asChild={!!telefoneWhats}
+              disabled={!telefoneWhats}
+              size="lg"
+              className="w-full bg-[#25D366] text-white hover:bg-[#1FB855]"
+            >
+              {telefoneWhats ? (
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Enviar por WhatsApp para {dr?.nome?.split(" ")[0]}
+                </a>
               ) : (
-                <Copy className="mr-2 h-4 w-4" />
+                <span>
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Motorista sem telefone cadastrado
+                </span>
               )}
-              Copiar link
             </Button>
-            <Button asChild>
-              <Link
-                to="/rota/$routeCode"
-                params={{ routeCode: batch.routeCode }}
-              >
-                <ExternalLink className="mr-2 h-4 w-4" /> Abrir visão do
-                motorista
-              </Link>
-            </Button>
+
+            <div className="grid w-full grid-cols-2 gap-2">
+              <Button variant="outline" onClick={copy}>
+                {copied ? (
+                  <Check className="mr-2 h-4 w-4" />
+                ) : (
+                  <Copy className="mr-2 h-4 w-4" />
+                )}
+                Copiar link
+              </Button>
+              <Button variant="outline" onClick={copyMessage}>
+                <Copy className="mr-2 h-4 w-4" /> Copiar mensagem
+              </Button>
+            </div>
+
+            <div className="flex w-full flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <Button variant="ghost" size="sm" onClick={regenerate}>
+                <RefreshCw className="mr-2 h-4 w-4" /> Regenerar código
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link
+                  to="/rota/$routeCode"
+                  params={{ routeCode: batch.routeCode }}
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" /> Abrir visão do
+                  motorista
+                </Link>
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
