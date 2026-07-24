@@ -20,17 +20,15 @@ import {
 } from "@/services/store";
 
 export const Route = createFileRoute("/rota/$routeCode")({
-  // Aceita o código de acesso pela URL: o QR/link entra direto na rota.
-  // O retorno precisa ter `c` OPCIONAL (e não `c: string | undefined`), senão
-  // o TanStack passa a exigir a prop `search` em todo <Link> destas rotas.
-  validateSearch: (search: Record<string, unknown>): { c?: string } =>
-    typeof search.c === "string" ? { c: search.c } : {},
+  // O link do motorista NÃO carrega o código de acesso — segurança acima
+  // de conveniência (link pode ser encaminhado/vazar). Quando não há sessão
+  // ativa, mandamos para /rota com o código da rota pré-preenchido; o
+  // motorista digita apenas o código de acesso (segundo fator).
   component: DriverLayout,
 });
 
 function DriverLayout() {
   const { routeCode } = useParams({ from: "/rota/$routeCode" });
-  const { c: codeFromLink } = Route.useSearch();
   const navigate = useNavigate();
   const batch = useStore((s) => s.batches.find((b) => b.routeCode === routeCode));
   const syncStatus = useSyncStatus();
@@ -47,13 +45,10 @@ function DriverLayout() {
       setAuthorized(true);
       return;
     }
-    // Login automático quando o link carrega o código correto.
-    if (codeFromLink && driverSession.login(routeCode, codeFromLink)) {
-      setAuthorized(true);
-      return;
-    }
-    void navigate({ to: "/rota" });
-  }, [routeCode, navigate, codeFromLink, loading]);
+    // Sem sessão: manda para a tela de acesso com o código da rota
+    // pré-preenchido — o motorista informa só o código de acesso.
+    void navigate({ to: "/rota", search: { r: routeCode } });
+  }, [routeCode, navigate, loading]);
 
   // Registra a abertura uma vez por sessão do navegador: o admin precisa saber
   // se o link chegou, mas navegar entre telas não é uma nova abertura.
