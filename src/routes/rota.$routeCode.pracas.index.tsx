@@ -67,8 +67,10 @@ function PracasPage() {
         </div>
       </header>
 
+      {/* min-w-0 nos filhos: sem isso a coluna unica do mobile assume a
+          largura minima do conteudo mais largo e a pagina vaza na horizontal. */}
       <div className="grid gap-4 xl:grid-cols-[250px_minmax(0,1fr)_320px]">
-        <aside className="order-2 space-y-3 xl:order-1 xl:sticky xl:top-28 xl:self-start">
+        <aside className="order-2 min-w-0 space-y-3 xl:order-1 xl:sticky xl:top-28 xl:self-start">
           <SectionShell title="Viagens" icon={<CalendarDays className="h-4 w-4" />}>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
               {trips.map((trip, index) => (
@@ -78,7 +80,7 @@ function PracasPage() {
           </SectionShell>
         </aside>
 
-        <section className="order-1 space-y-3 xl:order-2">
+        <section className="order-1 min-w-0 space-y-3 xl:order-2">
           {changed && !locked && (
             <div className="rounded-lg border-l-4 border-[color:var(--brand-warn)] bg-[color:var(--brand-warn-bg)] px-3 py-2 text-xs font-medium text-[color:var(--brand-warn-fg)]">
               Ordem alterada em relação ao Fusion - clique em confirmar quando
@@ -130,7 +132,7 @@ function PracasPage() {
           />
         </section>
 
-        <aside className="order-3 space-y-3 xl:sticky xl:top-28 xl:self-start">
+        <aside className="order-3 min-w-0 space-y-3 xl:sticky xl:top-28 xl:self-start">
           <SectionShell
             title="Resumo da sequência"
             icon={<ClipboardList className="h-4 w-4" />}
@@ -208,7 +210,11 @@ function PracasPage() {
               onClick={() => toast.success("Ordem das praças salva")}
             >
               <Link to="/rota/$routeCode/resumo" params={{ routeCode }}>
-                Continuar para o resumo
+                {/* Em telas muito estreitas o rotulo completo estourava a barra. */}
+                <span className="hidden min-[360px]:inline">
+                  Continuar para o resumo
+                </span>
+                <span className="min-[360px]:hidden">Continuar</span>
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
@@ -312,7 +318,7 @@ function TripSummary({
 
 function SummaryFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-muted/45 px-3 py-2">
+    <div className="min-w-0 rounded-lg bg-muted/45 px-3 py-2">
       <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>

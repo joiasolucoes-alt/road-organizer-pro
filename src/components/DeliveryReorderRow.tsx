@@ -64,8 +64,10 @@ export function DeliveryReorderRow({
         onClick={onOpen}
         className="min-w-0 flex-1 text-left"
       >
-        <div className="flex items-center gap-1.5">
-          <p className="truncate text-sm font-semibold text-foreground">
+        {/* min-w-0 no container E no <p>: sem isso o nome do cliente nao
+            encolhe e alarga a linha inteira para fora da tela. */}
+        <div className="flex min-w-0 items-center gap-1.5">
+          <p className="min-w-0 truncate text-sm font-semibold text-foreground">
             {d.cliente}
           </p>
           {changed && (

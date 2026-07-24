@@ -19,7 +19,9 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card p-4 shadow-sm",
+        // min-w-0: itens de grid nao encolhem abaixo do conteudo por padrao,
+        // e um valor longo aqui alarga a coluna inteira no celular.
+        "min-w-0 rounded-xl border bg-card p-4 shadow-sm",
         tone === "brand" &&
           "bg-primary text-primary-foreground border-transparent",
         tone === "lime" &&
@@ -39,7 +41,9 @@ export function StatCard({
         </p>
         {icon && <span className="opacity-80">{icon}</span>}
       </div>
-      <p className="mt-1.5 text-2xl font-bold tracking-tight">{value}</p>
+      <p className="mt-1.5 truncate text-2xl font-bold tracking-tight">
+        {value}
+      </p>
       {hint && (
         <p
           className={cn(

@@ -103,7 +103,7 @@ function SquareDeliveriesPage() {
       </header>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="space-y-3">
+        <section className="min-w-0 space-y-3">
           {locked && (
             <div className="rounded-lg border-l-4 border-primary bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
               Rota confirmada — visualização somente leitura.
