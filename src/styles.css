@@ -151,3 +151,13 @@
     color: var(--color-foreground);
   }
 }
+
+/*
+ * Leaflet usa z-index alto nos panes (200-600) e controles (~1000). Sem um
+ * stacking context proprio, esses valores competem na raiz e o mapa passa por
+ * cima de drawers/modais (z-50). `isolation: isolate` contem tudo dentro do
+ * container, que passa a se comportar como um unico elemento no fluxo normal.
+ */
+.leaflet-container {
+  isolation: isolate;
+}
